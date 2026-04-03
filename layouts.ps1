@@ -535,52 +535,106 @@ function Build-SpacePanel {
         $colorBar.BackColor = $strokeColor
         $pnlHeader.Controls.Add($colorBar)
 
+        # Label clicavel para renomear inline
         $lblName = New-Object System.Windows.Forms.Label
         $lblName.Text      = $space.Name
         $lblName.ForeColor = $cText
         $lblName.Font      = New-Object System.Drawing.Font("Segoe UI", 8.5, [System.Drawing.FontStyle]::Bold)
         $lblName.Location  = New-Object System.Drawing.Point(10, 4)
-        $lblName.Size      = New-Object System.Drawing.Size(140, 18)
-        $pnlHeader.Controls.Add($lblName)
+        $lblName.Size      = New-Object System.Drawing.Size(128, 18)
+        $lblName.Cursor    = [System.Windows.Forms.Cursors]::IBeam
 
-        # Botao de atalho por space (adiciona apenas uma janela)
-        $btnShortcut = New-Object System.Windows.Forms.Button
-        $btnShortcut.Text      = "Atalho"
-        $btnShortcut.Location  = New-Object System.Drawing.Point(160, 2)
-        $btnShortcut.Size      = New-Object System.Drawing.Size(55, 22)
-        $btnShortcut.FlatStyle = "Flat"
-        $btnShortcut.BackColor = $cSurface
-        $btnShortcut.ForeColor = $cAccent
-        $btnShortcut.FlatAppearance.BorderColor = $cAccent
-        $btnShortcut.Font      = New-Object System.Drawing.Font("Segoe UI", 7)
-        $btnShortcut.Tag       = $i
-        $btnShortcut.add_Click({
+        # TextBox inline (oculto por padrao)
+        $txtRename = New-Object System.Windows.Forms.TextBox
+        $txtRename.Text        = $space.Name
+        $txtRename.Font        = New-Object System.Drawing.Font("Segoe UI", 8.5, [System.Drawing.FontStyle]::Bold)
+        $txtRename.Location    = New-Object System.Drawing.Point(9, 3)
+        $txtRename.Size        = New-Object System.Drawing.Size(128, 20)
+        $txtRename.BackColor   = $cSurface
+        $txtRename.ForeColor   = $cText
+        $txtRename.BorderStyle = "FixedSingle"
+        $txtRename.Visible     = $false
+        $txtRename.Tag         = @{ SpaceIdx = $i; Label = $lblName }
+
+        $lblName.Tag = $txtRename
+        $lblName.add_Click({
             param($s, $e)
-            $spIdx = $s.Tag
-            $space = $script:currentSpaces[$spIdx]
-            
-            # Verificar se ja tem janela
-            if ($space.Layers.Count -gt 0) {
-                $lblStatus.Text      = "Space '$($space.Name)' ja tem uma janela."
-                $lblStatus.ForeColor = $cOrange
-                return
-            }
-            
-            $foreWin = [WinAPI]::GetForegroundWindow()
-            $title   = [WinAPI]::GetTitle($foreWin)
-            if (-not $title -or $title -like "*SnapLayout*") {
-                $lblStatus.Text      = "Nenhuma janela ativa valida."
-                $lblStatus.ForeColor = $cOrange
-                return
-            }
-            [void]$space.Layers.Add(@{ Handle = $foreWin; Title = $title })
-            Build-SpacePanel
-            $pnlPreview.Invalidate()
-            $short = if ($title.Length -gt 40) { $title.Substring(0, 37) + "..." } else { $title }
-            $lblStatus.Text      = "Janela '$short' adicionada a $($space.Name)."
-            $lblStatus.ForeColor = $cGreen
+            $txt       = $s.Tag
+            $s.Visible = $false
+            $txt.Visible = $true
+            $txt.SelectAll()
+            $txt.Focus()
         })
-        $pnlHeader.Controls.Add($btnShortcut)
+
+        $txtRename.add_KeyDown({
+            param($s, $ke)
+            if ($ke.KeyCode -eq [System.Windows.Forms.Keys]::Return) {
+                $ke.SuppressKeyPress = $true
+                $newName = $s.Text.Trim()
+                if ($newName) { $script:currentSpaces[$s.Tag.SpaceIdx].Name = $newName }
+                Build-SpacePanel
+                $pnlPreview.Invalidate()
+            } elseif ($ke.KeyCode -eq [System.Windows.Forms.Keys]::Escape) {
+                $s.Visible            = $false
+                $s.Tag.Label.Visible  = $true
+            }
+        })
+
+        $txtRename.add_LostFocus({
+            param($s, $e)
+            $s.Visible           = $false
+            $s.Tag.Label.Visible = $true
+        })
+
+        $pnlHeader.Controls.Add($lblName)
+        $pnlHeader.Controls.Add($txtRename)
+
+        # Botoes de reordenar
+        $btnUp = New-Object System.Windows.Forms.Button
+        $btnUp.Text      = [char]0x25B2
+        $btnUp.Location  = New-Object System.Drawing.Point(142, 2)
+        $btnUp.Size      = New-Object System.Drawing.Size(18, 22)
+        $btnUp.FlatStyle = "Flat"
+        $btnUp.BackColor = $cSurface
+        $btnUp.ForeColor = $cMuted
+        $btnUp.FlatAppearance.BorderSize = 0
+        $btnUp.Font      = New-Object System.Drawing.Font("Segoe UI", 6)
+        $btnUp.Tag       = $i
+        $btnUp.add_Click({
+            param($s, $e)
+            $idx = $s.Tag
+            if ($idx -gt 0) {
+                $tmp = $script:currentSpaces[$idx - 1]
+                $script:currentSpaces[$idx - 1] = $script:currentSpaces[$idx]
+                $script:currentSpaces[$idx] = $tmp
+                Build-SpacePanel
+                $pnlPreview.Invalidate()
+            }
+        })
+        $pnlHeader.Controls.Add($btnUp)
+
+        $btnDown = New-Object System.Windows.Forms.Button
+        $btnDown.Text      = [char]0x25BC
+        $btnDown.Location  = New-Object System.Drawing.Point(162, 2)
+        $btnDown.Size      = New-Object System.Drawing.Size(18, 22)
+        $btnDown.FlatStyle = "Flat"
+        $btnDown.BackColor = $cSurface
+        $btnDown.ForeColor = $cMuted
+        $btnDown.FlatAppearance.BorderSize = 0
+        $btnDown.Font      = New-Object System.Drawing.Font("Segoe UI", 6)
+        $btnDown.Tag       = $i
+        $btnDown.add_Click({
+            param($s, $e)
+            $idx = $s.Tag
+            if ($idx -lt ($script:currentSpaces.Count - 1)) {
+                $tmp = $script:currentSpaces[$idx + 1]
+                $script:currentSpaces[$idx + 1] = $script:currentSpaces[$idx]
+                $script:currentSpaces[$idx] = $tmp
+                Build-SpacePanel
+                $pnlPreview.Invalidate()
+            }
+        })
+        $pnlHeader.Controls.Add($btnDown)
 
         # Botao de deletar space
         $btnDelSpace = New-Object System.Windows.Forms.Button
