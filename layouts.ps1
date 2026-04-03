@@ -314,7 +314,7 @@ $form.Controls.Add($lstSaved)
 $btnDeleteSaved = New-Object System.Windows.Forms.Button
 $btnDeleteSaved.Text      = "Excluir"
 $btnDeleteSaved.Location  = New-Object System.Drawing.Point(8, 466)
-$btnDeleteSaved.Size      = New-Object System.Drawing.Size(94, 26)
+$btnDeleteSaved.Size      = New-Object System.Drawing.Size(95, 28)
 $btnDeleteSaved.FlatStyle = "Flat"
 $btnDeleteSaved.BackColor = $cSurface
 $btnDeleteSaved.ForeColor = $cRed
@@ -324,8 +324,8 @@ $form.Controls.Add($btnDeleteSaved)
 
 $btnSetShortcut = New-Object System.Windows.Forms.Button
 $btnSetShortcut.Text      = "Atalho..."
-$btnSetShortcut.Location  = New-Object System.Drawing.Point(108, 466)
-$btnSetShortcut.Size      = New-Object System.Drawing.Size(94, 26)
+$btnSetShortcut.Location  = New-Object System.Drawing.Point(107, 466)
+$btnSetShortcut.Size      = New-Object System.Drawing.Size(95, 28)
 $btnSetShortcut.FlatStyle = "Flat"
 $btnSetShortcut.BackColor = $cSurface
 $btnSetShortcut.ForeColor = $cMuted
@@ -365,10 +365,11 @@ $lblSpaces.Size      = New-Object System.Drawing.Size(280, 13)
 $form.Controls.Add($lblSpaces)
 
 $pnlSpaces = New-Object System.Windows.Forms.Panel
-$pnlSpaces.Location   = New-Object System.Drawing.Point(792, 92)
-$pnlSpaces.Size       = New-Object System.Drawing.Size(280, 378)
-$pnlSpaces.BackColor  = $cSurface
-$pnlSpaces.AutoScroll = $true
+$pnlSpaces.Location            = New-Object System.Drawing.Point(792, 92)
+$pnlSpaces.Size                = New-Object System.Drawing.Size(280, 378)
+$pnlSpaces.BackColor           = $cSurface
+$pnlSpaces.AutoScroll          = $true
+$pnlSpaces.AutoScrollMinSize   = New-Object System.Drawing.Size(1, 1)
 $form.Controls.Add($pnlSpaces)
 
 # ============================================================
@@ -391,8 +392,8 @@ $form.Controls.Add($lblRes)
 
 $btnApply = New-Object System.Windows.Forms.Button
 $btnApply.Text      = "Aplicar Layout"
-$btnApply.Location  = New-Object System.Drawing.Point(388, 483)
-$btnApply.Size      = New-Object System.Drawing.Size(188, 34)
+$btnApply.Location  = New-Object System.Drawing.Point(334, 483)
+$btnApply.Size      = New-Object System.Drawing.Size(190, 34)
 $btnApply.FlatStyle = "Flat"
 $btnApply.BackColor = $cAccent
 $btnApply.ForeColor = [System.Drawing.Color]::White
@@ -402,8 +403,8 @@ $form.Controls.Add($btnApply)
 
 $btnSaveCurrent = New-Object System.Windows.Forms.Button
 $btnSaveCurrent.Text      = "Salvar Layout"
-$btnSaveCurrent.Location  = New-Object System.Drawing.Point(584, 483)
-$btnSaveCurrent.Size      = New-Object System.Drawing.Size(130, 34)
+$btnSaveCurrent.Location  = New-Object System.Drawing.Point(532, 483)
+$btnSaveCurrent.Size      = New-Object System.Drawing.Size(160, 34)
 $btnSaveCurrent.FlatStyle = "Flat"
 $btnSaveCurrent.BackColor = $cSurface
 $btnSaveCurrent.ForeColor = $cAccent
@@ -530,8 +531,8 @@ function Build-SpacePanel {
 
         # Indicador de cor + Nome + botoes
         $pnlHeader = New-Object System.Windows.Forms.Panel
-        $pnlHeader.Location  = New-Object System.Drawing.Point(4, $y)
-        $pnlHeader.Size      = New-Object System.Drawing.Size(270, 26)
+        $pnlHeader.Location  = New-Object System.Drawing.Point(2, $y)
+        $pnlHeader.Size      = New-Object System.Drawing.Size(258, 26)
         $pnlHeader.BackColor = $cSurface
         $pnlHeader.Cursor    = [System.Windows.Forms.Cursors]::Hand
         $pnlHeader.Tag       = $i
@@ -556,16 +557,16 @@ function Build-SpacePanel {
         $lblName.Text      = $space.Name
         $lblName.ForeColor = $cText
         $lblName.Font      = New-Object System.Drawing.Font("Segoe UI", 8.5, [System.Drawing.FontStyle]::Bold)
-        $lblName.Location  = New-Object System.Drawing.Point(12, 4)
-        $lblName.Size      = New-Object System.Drawing.Size(140, 18)
+        $lblName.Location  = New-Object System.Drawing.Point(10, 4)
+        $lblName.Size      = New-Object System.Drawing.Size(130, 18)
         $lblName.Cursor    = [System.Windows.Forms.Cursors]::IBeam
 
         # TextBox inline (oculto por padrao)
         $txtRename = New-Object System.Windows.Forms.TextBox
         $txtRename.Text        = $space.Name
         $txtRename.Font        = New-Object System.Drawing.Font("Segoe UI", 8.5, [System.Drawing.FontStyle]::Bold)
-        $txtRename.Location    = New-Object System.Drawing.Point(11, 3)
-        $txtRename.Size        = New-Object System.Drawing.Size(140, 20)
+        $txtRename.Location    = New-Object System.Drawing.Point(9, 3)
+        $txtRename.Size        = New-Object System.Drawing.Size(130, 20)
         $txtRename.BackColor   = $cSurface
         $txtRename.ForeColor   = $cText
         $txtRename.BorderStyle = "FixedSingle"
@@ -608,7 +609,7 @@ function Build-SpacePanel {
         # Botoes de reordenar
         $btnUp = New-Object System.Windows.Forms.Button
         $btnUp.Text      = [char]0x25B2
-        $btnUp.Location  = New-Object System.Drawing.Point(156, 2)
+        $btnUp.Location  = New-Object System.Drawing.Point(144, 2)
         $btnUp.Size      = New-Object System.Drawing.Size(18, 22)
         $btnUp.FlatStyle = "Flat"
         $btnUp.BackColor = $cSurface
@@ -631,7 +632,7 @@ function Build-SpacePanel {
 
         $btnDown = New-Object System.Windows.Forms.Button
         $btnDown.Text      = [char]0x25BC
-        $btnDown.Location  = New-Object System.Drawing.Point(176, 2)
+        $btnDown.Location  = New-Object System.Drawing.Point(164, 2)
         $btnDown.Size      = New-Object System.Drawing.Size(18, 22)
         $btnDown.FlatStyle = "Flat"
         $btnDown.BackColor = $cSurface
@@ -655,7 +656,7 @@ function Build-SpacePanel {
         # Botao de deletar space
         $btnDelSpace = New-Object System.Windows.Forms.Button
         $btnDelSpace.Text      = "X"
-        $btnDelSpace.Location  = New-Object System.Drawing.Point(244, 2)
+        $btnDelSpace.Location  = New-Object System.Drawing.Point(234, 2)
         $btnDelSpace.Size      = New-Object System.Drawing.Size(22, 22)
         $btnDelSpace.FlatStyle = "Flat"
         $btnDelSpace.BackColor = $cSurface
@@ -688,15 +689,15 @@ function Build-SpacePanel {
             $lblLayer.Text      = "  L$($layerIdx + 1): $lt"
             $lblLayer.ForeColor = $cMuted
             $lblLayer.Font      = New-Object System.Drawing.Font("Segoe UI", 8)
-            $lblLayer.Location  = New-Object System.Drawing.Point(14, $y)
-            $lblLayer.Size      = New-Object System.Drawing.Size(236, 16)
+            $lblLayer.Location  = New-Object System.Drawing.Point(10, $y)
+            $lblLayer.Size      = New-Object System.Drawing.Size(216, 16)
             $pnlSpaces.Controls.Add($lblLayer)
 
             # Botao [X] remover layer
             $btnRemove = New-Object System.Windows.Forms.Button
             $btnRemove.Text      = "X"
-            $btnRemove.Location  = New-Object System.Drawing.Point(252, ($y - 1))
-            $btnRemove.Size      = New-Object System.Drawing.Size(22, 18)
+            $btnRemove.Location  = New-Object System.Drawing.Point(232, ($y - 1))
+            $btnRemove.Size      = New-Object System.Drawing.Size(20, 18)
             $btnRemove.FlatStyle = "Flat"
             $btnRemove.BackColor = $cSurface
             $btnRemove.ForeColor = $cRed
@@ -721,8 +722,8 @@ function Build-SpacePanel {
         # Botao "Add Layer"
         $btnAdd = New-Object System.Windows.Forms.Button
         $btnAdd.Text      = "+ Add Layer"
-        $btnAdd.Location  = New-Object System.Drawing.Point(6, $y)
-        $btnAdd.Size      = New-Object System.Drawing.Size(128, 22)
+        $btnAdd.Location  = New-Object System.Drawing.Point(4, $y)
+        $btnAdd.Size      = New-Object System.Drawing.Size(124, 22)
         $btnAdd.FlatStyle = "Flat"
         $btnAdd.BackColor = $cSurface
         $btnAdd.ForeColor = $cGreen
@@ -782,8 +783,8 @@ function Build-SpacePanel {
         # Botao "Atalho..." por space
         $btnSpaceShortcut = New-Object System.Windows.Forms.Button
         $btnSpaceShortcut.Text      = "Atalho..."
-        $btnSpaceShortcut.Location  = New-Object System.Drawing.Point(140, $y)
-        $btnSpaceShortcut.Size      = New-Object System.Drawing.Size(128, 22)
+        $btnSpaceShortcut.Location  = New-Object System.Drawing.Point(132, $y)
+        $btnSpaceShortcut.Size      = New-Object System.Drawing.Size(124, 22)
         $btnSpaceShortcut.FlatStyle = "Flat"
         $btnSpaceShortcut.BackColor = $cSurface
         $btnSpaceShortcut.ForeColor = $cAccent
@@ -866,8 +867,8 @@ function Build-SpacePanel {
 
         # Separador
         $sepSpace = New-Object System.Windows.Forms.Panel
-        $sepSpace.Location  = New-Object System.Drawing.Point(4, $y)
-        $sepSpace.Size      = New-Object System.Drawing.Size(272, 1)
+        $sepSpace.Location  = New-Object System.Drawing.Point(2, $y)
+        $sepSpace.Size      = New-Object System.Drawing.Size(256, 1)
         $sepSpace.BackColor = $cBorder
         $pnlSpaces.Controls.Add($sepSpace)
         $y += 8
