@@ -24,9 +24,12 @@ public class WinAPI {
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
     [DllImport("user32.dll")] public static extern short GetAsyncKeyState(int vKey);
     [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr hWnd);
+    [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
 
     [StructLayout(LayoutKind.Sequential)]
     public struct RECT { public int Left, Top, Right, Bottom; }
+
+    public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
     public static List<IntPtr> GetVisibleWindows() {
         var list = new List<IntPtr>();
@@ -41,7 +44,6 @@ public class WinAPI {
         }, IntPtr.Zero);
         return list;
     }
-    public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
     public const int SW_RESTORE = 9;
     public const uint SWP_SHOWWINDOW = 0x0040;
     public const uint SWP_NOZORDER = 0x0004;
