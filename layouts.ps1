@@ -202,15 +202,15 @@ function Load-AllLayouts {
 #  CORES
 # ============================================================
 
-$cAccent  = [System.Drawing.Color]::FromArgb(80, 140, 255)
-$cSurface = [System.Drawing.Color]::FromArgb(42, 42, 50)
-$cBg      = [System.Drawing.Color]::FromArgb(30, 30, 35)
-$cBorder  = [System.Drawing.Color]::FromArgb(65, 65, 75)
-$cText    = [System.Drawing.Color]::WhiteSmoke
-$cMuted   = [System.Drawing.Color]::FromArgb(150, 150, 165)
-$cGreen   = [System.Drawing.Color]::FromArgb(80, 210, 130)
-$cOrange  = [System.Drawing.Color]::FromArgb(255, 120, 60)
-$cRed     = [System.Drawing.Color]::FromArgb(220, 60, 60)
+$cAccent  = [System.Drawing.Color]::FromArgb(100, 160, 255)
+$cSurface = [System.Drawing.Color]::FromArgb(38, 38, 48)
+$cBg      = [System.Drawing.Color]::FromArgb(24, 24, 30)
+$cBorder  = [System.Drawing.Color]::FromArgb(55, 55, 68)
+$cText    = [System.Drawing.Color]::FromArgb(230, 230, 240)
+$cMuted   = [System.Drawing.Color]::FromArgb(130, 130, 150)
+$cGreen   = [System.Drawing.Color]::FromArgb(72, 200, 120)
+$cOrange  = [System.Drawing.Color]::FromArgb(255, 130, 50)
+$cRed     = [System.Drawing.Color]::FromArgb(210, 55, 55)
 
 $script:spaceColors = @(
     @{ Fill=[System.Drawing.Color]::FromArgb(40, 220, 60, 60);   Stroke=[System.Drawing.Color]::FromArgb(220, 60, 60) },
@@ -237,44 +237,49 @@ $form.Font            = New-Object System.Drawing.Font("Segoe UI", 9)
 
 # -- Titulo
 $lblTitle = New-Object System.Windows.Forms.Label
-$lblTitle.Text      = "  SnapLayout v2"
-$lblTitle.Font      = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
+$lblTitle.Text      = "SnapLayout"
+$lblTitle.Font      = New-Object System.Drawing.Font("Segoe UI", 13, [System.Drawing.FontStyle]::Bold)
 $lblTitle.ForeColor = $cAccent
-$lblTitle.Location  = New-Object System.Drawing.Point(12, 10)
-$lblTitle.Size      = New-Object System.Drawing.Size(280, 30)
+$lblTitle.Location  = New-Object System.Drawing.Point(14, 12)
+$lblTitle.Size      = New-Object System.Drawing.Size(190, 26)
 $form.Controls.Add($lblTitle)
 
 $lblSub = New-Object System.Windows.Forms.Label
-$lblSub.Text      = "Spaces, Layers, Canvas & Atalhos - sem instalar nada"
+$lblSub.Text      = "Spaces · Layers · Atalhos"
 $lblSub.ForeColor = $cMuted
+$lblSub.Font      = New-Object System.Drawing.Font("Segoe UI", 8)
 $lblSub.Location  = New-Object System.Drawing.Point(14, 40)
-$lblSub.Size      = New-Object System.Drawing.Size(450, 18)
+$lblSub.Size      = New-Object System.Drawing.Size(190, 16)
 $form.Controls.Add($lblSub)
 
+# Separador horizontal topo
 $sep = New-Object System.Windows.Forms.Panel
-$sep.Location  = New-Object System.Drawing.Point(12, 62)
-$sep.Size      = New-Object System.Drawing.Size(1044, 1)
+$sep.Location  = New-Object System.Drawing.Point(0, 62)
+$sep.Size      = New-Object System.Drawing.Size(1080, 1)
 $sep.BackColor = $cBorder
 $form.Controls.Add($sep)
 
+# Separadores verticais entre colunas
+$sepV1 = New-Object System.Windows.Forms.Panel
+$sepV1.Location  = New-Object System.Drawing.Point(206, 63)
+$sepV1.Size      = New-Object System.Drawing.Size(1, 480)
+$sepV1.BackColor = $cBorder
+$form.Controls.Add($sepV1)
+
+$sepV2 = New-Object System.Windows.Forms.Panel
+$sepV2.Location  = New-Object System.Drawing.Point(780, 63)
+$sepV2.Size      = New-Object System.Drawing.Size(1, 480)
+$sepV2.BackColor = $cBorder
+$form.Controls.Add($sepV2)
+
 # ============================================================
-#  PAINEL DE FERRAMENTAS (esquerda-topo)
+#  COLUNA ESQUERDA
 # ============================================================
-
-$lblTools = New-Object System.Windows.Forms.Label
-$lblTools.Text      = "FERRAMENTAS"
-$lblTools.Font      = New-Object System.Drawing.Font("Segoe UI", 8, [System.Drawing.FontStyle]::Bold)
-$lblTools.ForeColor = $cMuted
-$lblTools.Location  = New-Object System.Drawing.Point(14, 72)
-$lblTools.Size      = New-Object System.Drawing.Size(180, 16)
-$form.Controls.Add($lblTools)
-
-
 
 $btnSnapshot = New-Object System.Windows.Forms.Button
 $btnSnapshot.Text      = "Snapshot do Desktop"
-$btnSnapshot.Location  = New-Object System.Drawing.Point(12, 132)
-$btnSnapshot.Size      = New-Object System.Drawing.Size(180, 34)
+$btnSnapshot.Location  = New-Object System.Drawing.Point(10, 74)
+$btnSnapshot.Size      = New-Object System.Drawing.Size(188, 34)
 $btnSnapshot.FlatStyle = "Flat"
 $btnSnapshot.BackColor = $cSurface
 $btnSnapshot.ForeColor = $cText
@@ -282,22 +287,23 @@ $btnSnapshot.FlatAppearance.BorderColor = $cBorder
 $btnSnapshot.Font      = New-Object System.Drawing.Font("Segoe UI", 9)
 $form.Controls.Add($btnSnapshot)
 
-
-# ============================================================
-#  LAYOUTS SALVOS (esquerda-baixo)
-# ============================================================
+$sepSnap = New-Object System.Windows.Forms.Panel
+$sepSnap.Location  = New-Object System.Drawing.Point(10, 116)
+$sepSnap.Size      = New-Object System.Drawing.Size(188, 1)
+$sepSnap.BackColor = $cBorder
+$form.Controls.Add($sepSnap)
 
 $lblSaved = New-Object System.Windows.Forms.Label
 $lblSaved.Text      = "LAYOUTS SALVOS"
-$lblSaved.Font      = New-Object System.Drawing.Font("Segoe UI", 8, [System.Drawing.FontStyle]::Bold)
+$lblSaved.Font      = New-Object System.Drawing.Font("Segoe UI", 7.5, [System.Drawing.FontStyle]::Bold)
 $lblSaved.ForeColor = $cMuted
-$lblSaved.Location  = New-Object System.Drawing.Point(14, 214)
-$lblSaved.Size      = New-Object System.Drawing.Size(180, 16)
+$lblSaved.Location  = New-Object System.Drawing.Point(10, 124)
+$lblSaved.Size      = New-Object System.Drawing.Size(188, 14)
 $form.Controls.Add($lblSaved)
 
 $lstSaved = New-Object System.Windows.Forms.ListBox
-$lstSaved.Location    = New-Object System.Drawing.Point(12, 232)
-$lstSaved.Size        = New-Object System.Drawing.Size(180, 260)
+$lstSaved.Location    = New-Object System.Drawing.Point(10, 141)
+$lstSaved.Size        = New-Object System.Drawing.Size(188, 318)
 $lstSaved.BackColor   = $cSurface
 $lstSaved.ForeColor   = $cText
 $lstSaved.BorderStyle = "None"
@@ -306,8 +312,8 @@ $form.Controls.Add($lstSaved)
 
 $btnDeleteSaved = New-Object System.Windows.Forms.Button
 $btnDeleteSaved.Text      = "Excluir"
-$btnDeleteSaved.Location  = New-Object System.Drawing.Point(12, 502)
-$btnDeleteSaved.Size      = New-Object System.Drawing.Size(85, 26)
+$btnDeleteSaved.Location  = New-Object System.Drawing.Point(10, 465)
+$btnDeleteSaved.Size      = New-Object System.Drawing.Size(88, 26)
 $btnDeleteSaved.FlatStyle = "Flat"
 $btnDeleteSaved.BackColor = $cSurface
 $btnDeleteSaved.ForeColor = $cRed
@@ -317,8 +323,8 @@ $form.Controls.Add($btnDeleteSaved)
 
 $btnSetShortcut = New-Object System.Windows.Forms.Button
 $btnSetShortcut.Text      = "Atalho..."
-$btnSetShortcut.Location  = New-Object System.Drawing.Point(103, 502)
-$btnSetShortcut.Size      = New-Object System.Drawing.Size(89, 26)
+$btnSetShortcut.Location  = New-Object System.Drawing.Point(104, 465)
+$btnSetShortcut.Size      = New-Object System.Drawing.Size(94, 26)
 $btnSetShortcut.FlatStyle = "Flat"
 $btnSetShortcut.BackColor = $cSurface
 $btnSetShortcut.ForeColor = $cMuted
@@ -327,53 +333,65 @@ $btnSetShortcut.Font      = New-Object System.Drawing.Font("Segoe UI", 8)
 $form.Controls.Add($btnSetShortcut)
 
 # ============================================================
-#  PRE-VISUALIZACAO (centro, grande)
+#  PRE-VISUALIZACAO (centro)
 # ============================================================
 
 $lblPreview = New-Object System.Windows.Forms.Label
-$lblPreview.Text      = "PRE-VISUALIZACAO LAYOUT"
-$lblPreview.Font      = New-Object System.Drawing.Font("Segoe UI", 8, [System.Drawing.FontStyle]::Bold)
+$lblPreview.Text      = "PREVIEW"
+$lblPreview.Font      = New-Object System.Drawing.Font("Segoe UI", 7.5, [System.Drawing.FontStyle]::Bold)
 $lblPreview.ForeColor = $cMuted
-$lblPreview.Location  = New-Object System.Drawing.Point(208, 72)
-$lblPreview.Size      = New-Object System.Drawing.Size(520, 16)
+$lblPreview.Location  = New-Object System.Drawing.Point(216, 72)
+$lblPreview.Size      = New-Object System.Drawing.Size(200, 14)
 $form.Controls.Add($lblPreview)
 
 $pnlPreview = New-Object System.Windows.Forms.Panel
-$pnlPreview.Location    = New-Object System.Drawing.Point(208, 92)
-$pnlPreview.Size        = New-Object System.Drawing.Size(560, 380)
+$pnlPreview.Location    = New-Object System.Drawing.Point(216, 90)
+$pnlPreview.Size        = New-Object System.Drawing.Size(556, 384)
 $pnlPreview.BackColor   = $cSurface
 $pnlPreview.BorderStyle = "None"
 $form.Controls.Add($pnlPreview)
 
 # ============================================================
-#  PAINEL DE SPACES/LAYERS (direita)
+#  SPACES / LAYERS (direita)
 # ============================================================
 
 $lblSpaces = New-Object System.Windows.Forms.Label
 $lblSpaces.Text      = "SPACES & LAYERS"
-$lblSpaces.Font      = New-Object System.Drawing.Font("Segoe UI", 8, [System.Drawing.FontStyle]::Bold)
+$lblSpaces.Font      = New-Object System.Drawing.Font("Segoe UI", 7.5, [System.Drawing.FontStyle]::Bold)
 $lblSpaces.ForeColor = $cMuted
-$lblSpaces.Location  = New-Object System.Drawing.Point(784, 72)
-$lblSpaces.Size      = New-Object System.Drawing.Size(270, 16)
+$lblSpaces.Location  = New-Object System.Drawing.Point(790, 72)
+$lblSpaces.Size      = New-Object System.Drawing.Size(270, 14)
 $form.Controls.Add($lblSpaces)
 
 $pnlSpaces = New-Object System.Windows.Forms.Panel
-$pnlSpaces.Location   = New-Object System.Drawing.Point(784, 92)
-$pnlSpaces.Size       = New-Object System.Drawing.Size(272, 380)
+$pnlSpaces.Location   = New-Object System.Drawing.Point(790, 90)
+$pnlSpaces.Size       = New-Object System.Drawing.Size(274, 384)
 $pnlSpaces.BackColor  = $cSurface
 $pnlSpaces.AutoScroll = $true
 $form.Controls.Add($pnlSpaces)
 
 # ============================================================
-#  BOTOES PRINCIPAIS (centro-baixo)
+#  BARRA DE ACOES (baixo)
 # ============================================================
 
+$sepBottom = New-Object System.Windows.Forms.Panel
+$sepBottom.Location  = New-Object System.Drawing.Point(0, 482)
+$sepBottom.Size      = New-Object System.Drawing.Size(1080, 1)
+$sepBottom.BackColor = $cBorder
+$form.Controls.Add($sepBottom)
 
+$lblRes = New-Object System.Windows.Forms.Label
+$lblRes.Text      = "${SW} x ${SH} px"
+$lblRes.ForeColor = $cMuted
+$lblRes.Font      = New-Object System.Drawing.Font("Segoe UI", 8)
+$lblRes.Location  = New-Object System.Drawing.Point(216, 490)
+$lblRes.Size      = New-Object System.Drawing.Size(160, 16)
+$form.Controls.Add($lblRes)
 
 $btnApply = New-Object System.Windows.Forms.Button
-$btnApply.Text      = ">>  Aplicar Layout"
-$btnApply.Location  = New-Object System.Drawing.Point(420, 488)
-$btnApply.Size      = New-Object System.Drawing.Size(200, 42)
+$btnApply.Text      = "Aplicar Layout"
+$btnApply.Location  = New-Object System.Drawing.Point(386, 483)
+$btnApply.Size      = New-Object System.Drawing.Size(200, 36)
 $btnApply.FlatStyle = "Flat"
 $btnApply.BackColor = $cAccent
 $btnApply.ForeColor = [System.Drawing.Color]::White
@@ -382,9 +400,9 @@ $btnApply.Font      = New-Object System.Drawing.Font("Segoe UI", 10, [System.Dra
 $form.Controls.Add($btnApply)
 
 $btnSaveCurrent = New-Object System.Windows.Forms.Button
-$btnSaveCurrent.Text      = "Salvar Layout Atual"
-$btnSaveCurrent.Location  = New-Object System.Drawing.Point(632, 488)
-$btnSaveCurrent.Size      = New-Object System.Drawing.Size(136, 42)
+$btnSaveCurrent.Text      = "Salvar Layout"
+$btnSaveCurrent.Location  = New-Object System.Drawing.Point(594, 483)
+$btnSaveCurrent.Size      = New-Object System.Drawing.Size(130, 36)
 $btnSaveCurrent.FlatStyle = "Flat"
 $btnSaveCurrent.BackColor = $cSurface
 $btnSaveCurrent.ForeColor = $cAccent
@@ -392,22 +410,19 @@ $btnSaveCurrent.FlatAppearance.BorderColor = $cAccent
 $btnSaveCurrent.Font      = New-Object System.Drawing.Font("Segoe UI", 9)
 $form.Controls.Add($btnSaveCurrent)
 
-# -- Resolucao
-$lblRes = New-Object System.Windows.Forms.Label
-$lblRes.Text      = "Ecra: ${SW} x ${SH} px"
-$lblRes.ForeColor = $cMuted
-$lblRes.Font      = New-Object System.Drawing.Font("Segoe UI", 8)
-$lblRes.Location  = New-Object System.Drawing.Point(208, 474)
-$lblRes.Size      = New-Object System.Drawing.Size(200, 16)
-$form.Controls.Add($lblRes)
-
 # -- Status
+$sepStatus = New-Object System.Windows.Forms.Panel
+$sepStatus.Location  = New-Object System.Drawing.Point(0, 528)
+$sepStatus.Size      = New-Object System.Drawing.Size(1080, 1)
+$sepStatus.BackColor = $cBorder
+$form.Controls.Add($sepStatus)
+
 $lblStatus = New-Object System.Windows.Forms.Label
 $lblStatus.Text      = "Pronto."
 $lblStatus.ForeColor = $cMuted
 $lblStatus.Font      = New-Object System.Drawing.Font("Segoe UI", 8)
-$lblStatus.Location  = New-Object System.Drawing.Point(14, 556)
-$lblStatus.Size      = New-Object System.Drawing.Size(800, 18)
+$lblStatus.Location  = New-Object System.Drawing.Point(14, 534)
+$lblStatus.Size      = New-Object System.Drawing.Size(1050, 16)
 $form.Controls.Add($lblStatus)
 
 # ============================================================
