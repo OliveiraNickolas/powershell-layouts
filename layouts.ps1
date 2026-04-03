@@ -227,7 +227,7 @@ $script:spaceColors = @(
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text            = "SnapLayout v2"
-$form.Size            = New-Object System.Drawing.Size(1080, 620)
+$form.Size            = New-Object System.Drawing.Size(1080, 575)
 $form.StartPosition   = "CenterScreen"
 $form.FormBorderStyle = "FixedSingle"
 $form.MaximizeBox     = $false
@@ -259,16 +259,16 @@ $sep.Size      = New-Object System.Drawing.Size(1080, 2)
 $sep.BackColor = $cAccent
 $form.Controls.Add($sep)
 
-# Separadores verticais entre colunas
+# Separadores verticais entre colunas (64 ate o sepBottom em 480)
 $sepV1 = New-Object System.Windows.Forms.Panel
 $sepV1.Location  = New-Object System.Drawing.Point(210, 64)
-$sepV1.Size      = New-Object System.Drawing.Size(1, 466)
+$sepV1.Size      = New-Object System.Drawing.Size(1, 416)
 $sepV1.BackColor = $cBorder
 $form.Controls.Add($sepV1)
 
 $sepV2 = New-Object System.Windows.Forms.Panel
 $sepV2.Location  = New-Object System.Drawing.Point(782, 64)
-$sepV2.Size      = New-Object System.Drawing.Size(1, 466)
+$sepV2.Size      = New-Object System.Drawing.Size(1, 416)
 $sepV2.BackColor = $cBorder
 $form.Controls.Add($sepV2)
 
@@ -304,7 +304,7 @@ $form.Controls.Add($lblSaved)
 
 $lstSaved = New-Object System.Windows.Forms.ListBox
 $lstSaved.Location    = New-Object System.Drawing.Point(8, 140)
-$lstSaved.Size        = New-Object System.Drawing.Size(194, 320)
+$lstSaved.Size        = New-Object System.Drawing.Size(194, 330)
 $lstSaved.BackColor   = $cSurface
 $lstSaved.ForeColor   = $cText
 $lstSaved.BorderStyle = "None"
@@ -313,8 +313,8 @@ $form.Controls.Add($lstSaved)
 
 $btnDeleteSaved = New-Object System.Windows.Forms.Button
 $btnDeleteSaved.Text      = "Excluir"
-$btnDeleteSaved.Location  = New-Object System.Drawing.Point(8, 466)
-$btnDeleteSaved.Size      = New-Object System.Drawing.Size(95, 28)
+$btnDeleteSaved.Location  = New-Object System.Drawing.Point(8, 483)
+$btnDeleteSaved.Size      = New-Object System.Drawing.Size(95, 34)
 $btnDeleteSaved.FlatStyle = "Flat"
 $btnDeleteSaved.BackColor = $cSurface
 $btnDeleteSaved.ForeColor = $cRed
@@ -324,8 +324,8 @@ $form.Controls.Add($btnDeleteSaved)
 
 $btnSetShortcut = New-Object System.Windows.Forms.Button
 $btnSetShortcut.Text      = "Atalho..."
-$btnSetShortcut.Location  = New-Object System.Drawing.Point(107, 466)
-$btnSetShortcut.Size      = New-Object System.Drawing.Size(95, 28)
+$btnSetShortcut.Location  = New-Object System.Drawing.Point(107, 483)
+$btnSetShortcut.Size      = New-Object System.Drawing.Size(95, 34)
 $btnSetShortcut.FlatStyle = "Flat"
 $btnSetShortcut.BackColor = $cSurface
 $btnSetShortcut.ForeColor = $cMuted
@@ -344,6 +344,15 @@ $lblPreview.ForeColor = $cMuted
 $lblPreview.Location  = New-Object System.Drawing.Point(220, 74)
 $lblPreview.Size      = New-Object System.Drawing.Size(100, 13)
 $form.Controls.Add($lblPreview)
+
+$lblRes = New-Object System.Windows.Forms.Label
+$lblRes.Text      = "${SW} × ${SH}"
+$lblRes.ForeColor = $cMuted
+$lblRes.Font      = New-Object System.Drawing.Font("Segoe UI", 7)
+$lblRes.Location  = New-Object System.Drawing.Point(640, 75)
+$lblRes.Size      = New-Object System.Drawing.Size(134, 13)
+$lblRes.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
+$form.Controls.Add($lblRes)
 
 $pnlPreview = New-Object System.Windows.Forms.Panel
 $pnlPreview.Location    = New-Object System.Drawing.Point(220, 92)
@@ -382,17 +391,9 @@ $sepBottom.Size      = New-Object System.Drawing.Size(1080, 1)
 $sepBottom.BackColor = $cBorder
 $form.Controls.Add($sepBottom)
 
-$lblRes = New-Object System.Windows.Forms.Label
-$lblRes.Text      = "${SW} × ${SH}"
-$lblRes.ForeColor = $cMuted
-$lblRes.Font      = New-Object System.Drawing.Font("Segoe UI", 8)
-$lblRes.Location  = New-Object System.Drawing.Point(220, 491)
-$lblRes.Size      = New-Object System.Drawing.Size(140, 16)
-$form.Controls.Add($lblRes)
-
 $btnApply = New-Object System.Windows.Forms.Button
 $btnApply.Text      = "Aplicar Layout"
-$btnApply.Location  = New-Object System.Drawing.Point(334, 483)
+$btnApply.Location  = New-Object System.Drawing.Point(318, 483)
 $btnApply.Size      = New-Object System.Drawing.Size(190, 34)
 $btnApply.FlatStyle = "Flat"
 $btnApply.BackColor = $cAccent
@@ -403,7 +404,7 @@ $form.Controls.Add($btnApply)
 
 $btnSaveCurrent = New-Object System.Windows.Forms.Button
 $btnSaveCurrent.Text      = "Salvar Layout"
-$btnSaveCurrent.Location  = New-Object System.Drawing.Point(532, 483)
+$btnSaveCurrent.Location  = New-Object System.Drawing.Point(516, 483)
 $btnSaveCurrent.Size      = New-Object System.Drawing.Size(160, 34)
 $btnSaveCurrent.FlatStyle = "Flat"
 $btnSaveCurrent.BackColor = $cSurface
@@ -412,19 +413,13 @@ $btnSaveCurrent.FlatAppearance.BorderColor = $cAccent
 $btnSaveCurrent.Font      = New-Object System.Drawing.Font("Segoe UI", 9)
 $form.Controls.Add($btnSaveCurrent)
 
-# -- Barra de status
-$sepStatus = New-Object System.Windows.Forms.Panel
-$sepStatus.Location  = New-Object System.Drawing.Point(0, 526)
-$sepStatus.Size      = New-Object System.Drawing.Size(1080, 1)
-$sepStatus.BackColor = $cBorder
-$form.Controls.Add($sepStatus)
-
+# -- Status: linha discreta abaixo dos botoes, sem separador
 $lblStatus = New-Object System.Windows.Forms.Label
-$lblStatus.Text      = "Pronto."
+$lblStatus.Text      = ""
 $lblStatus.ForeColor = $cMuted
-$lblStatus.Font      = New-Object System.Drawing.Font("Segoe UI", 8)
-$lblStatus.Location  = New-Object System.Drawing.Point(12, 532)
-$lblStatus.Size      = New-Object System.Drawing.Size(1056, 16)
+$lblStatus.Font      = New-Object System.Drawing.Font("Segoe UI", 7.5)
+$lblStatus.Location  = New-Object System.Drawing.Point(12, 520)
+$lblStatus.Size      = New-Object System.Drawing.Size(1056, 14)
 $form.Controls.Add($lblStatus)
 
 # ============================================================
