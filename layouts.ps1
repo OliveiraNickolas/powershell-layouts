@@ -7,7 +7,7 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-Add-Type @"
+if (-not ([System.Management.Automation.PSTypeName]'WinAPI').Type) { Add-Type @"
 using System;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
@@ -74,7 +74,7 @@ public class WinAPI {
         return r;
     }
 }
-"@
+"@ }
 
 # ============================================================
 #  CONSTANTES E ESTADO GLOBAL
