@@ -551,7 +551,8 @@ if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
         $lblStatus.Text = "Atalho removido de '$($space.Name)'."
     }
     $lblStatus.ForeColor = $cGreen
-}
+    }
+})
 $pnlHeader.Controls.Add($btnSpaceSC)
 
 $y += 38
