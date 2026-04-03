@@ -101,8 +101,12 @@ $script:hotkeyCooldown = $false
 # Space hotkey bindings
 $script:spaceHotkeyBindings = @()
 $script:spaceHotkeyCooldown = $false
-# Index do space destacado no canvas (para redimensionamento)
+# Index do space destacado no canvas
 $script:highlightedSpaceIndex = -1
+# Estado de drag-resize no canvas
+$script:dragSpaceIdx  = -1
+$script:dragEdge      = ""
+$script:dragStartZone = @()
 
 # ============================================================
 #  FUNCOES UTILITARIAS
@@ -375,7 +379,7 @@ $form.Controls.Add($lblSpaces)
 
 $pnlSpaces = New-Object System.Windows.Forms.Panel
 $pnlSpaces.Location            = New-Object System.Drawing.Point(792, 92)
-$pnlSpaces.Size                = New-Object System.Drawing.Size(280, 378)
+$pnlSpaces.Size                = New-Object System.Drawing.Size(270, 378)
 $pnlSpaces.BackColor           = $cSurface
 $pnlSpaces.AutoScroll          = $true
 $pnlSpaces.AutoScrollMinSize   = New-Object System.Drawing.Size(1, 1)
@@ -509,6 +513,88 @@ $pnlPreview.add_MouseDoubleClick({
     param($s, $e)
     $script:highlightedSpaceIndex = -1
     $pnlPreview.Invalidate()
+})
+
+# -- Drag-resize: arrastar borda de um space para redimensionar
+$pnlPreview.add_MouseMove({
+    param($s, $e)
+    if ($script:currentSpaces.Count -eq 0) { return }
+    $pw  = $pnlPreview.Width  - 8
+    $ph  = $pnlPreview.Height - 8
+    $hit = 6
+
+    if ($script:dragSpaceIdx -ge 0) {
+        $space = $script:currentSpaces[$script:dragSpaceIdx]
+        $oz = $script:dragStartZone
+        if ($script:dragEdge -eq "right" -or $script:dragEdge -eq "corner") {
+            $newW = [Math]::Round($e.X / $pw * 100) - $oz[0]
+            $space.Zone[2] = [Math]::Max(5, [Math]::Min(100 - $oz[0], $newW))
+        }
+        if ($script:dragEdge -eq "bottom" -or $script:dragEdge -eq "corner") {
+            $newH = [Math]::Round($e.Y / $ph * 100) - $oz[1]
+            $space.Zone[3] = [Math]::Max(5, [Math]::Min(100 - $oz[1], $newH))
+        }
+        $pnlPreview.Invalidate()
+        return
+    }
+
+    $found = $false
+    foreach ($space in $script:currentSpaces) {
+        $zp = $space.Zone
+        $rx = 4 + [int]($pw * $zp[0] / 100)
+        $ry = 4 + [int]($ph * $zp[1] / 100)
+        $rw = [int]($pw * $zp[2] / 100) - 4
+        $rh = [int]($ph * $zp[3] / 100) - 4
+        $ex = $rx + $rw
+        $ey = $ry + $rh
+        $nr = [Math]::Abs($e.X - $ex) -le $hit -and $e.Y -ge ($ry-$hit) -and $e.Y -le ($ey+$hit)
+        $nb = [Math]::Abs($e.Y - $ey) -le $hit -and $e.X -ge ($rx-$hit) -and $e.X -le ($ex+$hit)
+        if ($nr -and $nb) { $pnlPreview.Cursor = [System.Windows.Forms.Cursors]::SizeNWSE; $found=$true; break }
+        elseif ($nr)      { $pnlPreview.Cursor = [System.Windows.Forms.Cursors]::SizeWE;   $found=$true; break }
+        elseif ($nb)      { $pnlPreview.Cursor = [System.Windows.Forms.Cursors]::SizeNS;   $found=$true; break }
+    }
+    if (-not $found) { $pnlPreview.Cursor = [System.Windows.Forms.Cursors]::Default }
+})
+
+$pnlPreview.add_MouseDown({
+    param($s, $e)
+    if ($e.Button -ne [System.Windows.Forms.MouseButtons]::Left) { return }
+    if ($script:currentSpaces.Count -eq 0) { return }
+    $pw  = $pnlPreview.Width  - 8
+    $ph  = $pnlPreview.Height - 8
+    $hit = 6
+    $idx = 0
+    foreach ($space in $script:currentSpaces) {
+        $zp = $space.Zone
+        $rx = 4 + [int]($pw * $zp[0] / 100)
+        $ry = 4 + [int]($ph * $zp[1] / 100)
+        $rw = [int]($pw * $zp[2] / 100) - 4
+        $rh = [int]($ph * $zp[3] / 100) - 4
+        $ex = $rx + $rw
+        $ey = $ry + $rh
+        $nr = [Math]::Abs($e.X - $ex) -le $hit -and $e.Y -ge ($ry-$hit) -and $e.Y -le ($ey+$hit)
+        $nb = [Math]::Abs($e.Y - $ey) -le $hit -and $e.X -ge ($rx-$hit) -and $e.X -le ($ex+$hit)
+        if ($nr -or $nb) {
+            $script:dragSpaceIdx  = $idx
+            $script:dragStartZone = @($zp[0], $zp[1], $zp[2], $zp[3])
+            $script:dragEdge      = if ($nr -and $nb) { "corner" } elseif ($nr) { "right" } else { "bottom" }
+            $pnlPreview.Capture   = $true
+            break
+        }
+        $idx++
+    }
+})
+
+$pnlPreview.add_MouseUp({
+    param($s, $e)
+    if ($script:dragSpaceIdx -ge 0) {
+        $script:dragSpaceIdx = -1
+        $script:dragEdge     = ""
+        $pnlPreview.Capture  = $false
+        $pnlPreview.Cursor   = [System.Windows.Forms.Cursors]::Default
+        Build-SpacePanel
+        $pnlPreview.Invalidate()
+    }
 })
 
 # ============================================================
@@ -922,9 +1008,10 @@ $btnApply.add_Click({
         return
     }
     $applied = 0
+    $gp = 2
     foreach ($space in $script:currentSpaces) {
-        $z = ConvertZone $space.Zone
-        # Calcular tamanho para cada layer com gap de 1px entre elas
+        $zr = ConvertZone $space.Zone
+        $z  = @{ X = $zr.X + $gp; Y = $zr.Y + $gp; W = $zr.W - $gp*2; H = $zr.H - $gp*2 }
         $layerCount = $space.Layers.Count
         if ($layerCount -le 0) {
             continue
@@ -1275,9 +1362,10 @@ function Apply-SpaceHotkey($space) {
 function Apply-LayoutByName($name) {
     $layout = $script:savedLayouts[$name]
     if (-not $layout) { return }
+    $gp = 2
     foreach ($space in $layout.Spaces) {
-        $z = ConvertZone $space.Zone
-        # Calcular tamanho para cada layer com gap de 1px entre elas
+        $zr = ConvertZone $space.Zone
+        $z  = @{ X = $zr.X + $gp; Y = $zr.Y + $gp; W = $zr.W - $gp*2; H = $zr.H - $gp*2 }
         $layerCount = $space.Layers.Count
         if ($layerCount -le 0) {
             continue
