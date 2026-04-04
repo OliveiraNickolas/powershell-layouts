@@ -131,10 +131,18 @@ function Get-VisibleWindows {
         }
         $title = [WinAPI]::GetTitle($h)
         if ($title -and $title.Length -gt 1) {
-            $result += [PSCustomObject]@{ Handle = $h; Title = $title }
+            $result += [PSCustomObject]@{ Handle = $h; Title = $title; Process = (Get-WindowProcess $h) }
         }
     }
     return $result | Sort-Object Title
+}
+
+function Get-WindowProcess($hwnd) {
+    try {
+        $pid2 = [uint32]0
+        [void][WinAPI]::GetWindowThreadProcessId($hwnd, [ref]$pid2)
+        return (Get-Process -Id ([int]$pid2) -ErrorAction Stop).ProcessName
+    } catch { return "" }
 }
 
 # ============================================================
@@ -150,13 +158,19 @@ function Save-AllLayouts {
         $layout = $script:savedLayouts[$name]
         $spacesData = @()
         foreach ($s in $layout.Spaces) {
-            $titles = @()
-            foreach ($l in $s.Layers) { $titles += $l.Title }
+            $layersData = @()
+            foreach ($l in $s.Layers) {
+                $layersData += @{
+                    title   = if ($l.Title)   { $l.Title }   else { "" }
+                    process = if ($l.Process) { $l.Process } else { "" }
+                    locked  = if ($l.Locked -eq $true) { $true } else { $false }
+                }
+            }
             $spacesData += @{
-                name         = $s.Name
-                zone         = @($s.Zone)
-                windowTitles = $titles
-                shortcut     = if ($s.Shortcut) { $s.Shortcut } else { "" }
+                name     = $s.Name
+                zone     = @($s.Zone)
+                shortcut = if ($s.Shortcut) { $s.Shortcut } else { "" }
+                layers   = $layersData
             }
         }
         $data.layouts += @{
@@ -185,13 +199,28 @@ function Load-AllLayouts {
                 Layers   = [System.Collections.ArrayList]::new()
                 Shortcut = if ($s.shortcut) { $s.shortcut } else { "" }
             }
-            # Tentar encontrar janelas por titulo
-            if ($s.windowTitles) {
+            $visWins = Get-VisibleWindows
+            if ($s.layers) {
+                # Novo formato: array de { title, process, locked }
+                foreach ($ld in $s.layers) {
+                    $proc   = if ($ld.process) { $ld.process } else { "" }
+                    $locked = ($ld.locked -eq $true)
+                    if ($locked) {
+                        $match = $visWins | Where-Object { $_.Title -like "*$($ld.title)*" } | Select-Object -First 1
+                    } else {
+                        $match = if ($proc) { $visWins | Where-Object { $_.Process -eq $proc } | Select-Object -First 1 } else { $null }
+                    }
+                    if ($match) {
+                        [void]$sp.Layers.Add(@{ Handle = $match.Handle; Title = $match.Title; Process = $match.Process; Locked = $locked })
+                    }
+                }
+            } elseif ($s.windowTitles) {
+                # Formato antigo: backward compat
                 foreach ($wt in $s.windowTitles) {
                     if (-not $wt) { continue }
-                    $match = Get-VisibleWindows | Where-Object { $_.Title -like "*$wt*" } | Select-Object -First 1
+                    $match = $visWins | Where-Object { $_.Title -like "*$wt*" } | Select-Object -First 1
                     if ($match) {
-                        [void]$sp.Layers.Add(@{ Handle = $match.Handle; Title = $match.Title })
+                        [void]$sp.Layers.Add(@{ Handle = $match.Handle; Title = $match.Title; Process = $match.Process; Locked = $false })
                     }
                 }
             }
@@ -793,14 +822,51 @@ function Build-SpacePanel {
         # Layers
         $layerIdx = 0
         foreach ($layer in $space.Layers) {
-            $lt = if ($layer.Title.Length -gt 28) { $layer.Title.Substring(0, 25) + "..." } else { $layer.Title }
+            $isLocked = ($layer.Locked -eq $true)
+
+            # Botao lock/unlock (●=locked laranja, ○=process muted)
+            $btnLock = New-Object System.Windows.Forms.Button
+            $btnLock.Text      = if ($isLocked) { [char]0x25CF } else { [char]0x25CB }
+            $btnLock.Location  = New-Object System.Drawing.Point(10, ($y - 1))
+            $btnLock.Size      = New-Object System.Drawing.Size(16, 18)
+            $btnLock.FlatStyle = "Flat"
+            $btnLock.BackColor = $cSurface
+            $btnLock.ForeColor = if ($isLocked) { $cOrange } else { $cMuted }
+            $btnLock.FlatAppearance.BorderSize = 0
+            $btnLock.Font      = New-Object System.Drawing.Font("Segoe UI", 8)
+            $btnLock.Tag       = @{ SpaceIdx = $i; LayerIdx = $layerIdx }
+            $btnLock.add_Click({
+                param($sender, $ea)
+                $tag = $sender.Tag
+                $sp  = $script:currentSpaces[$tag.SpaceIdx]
+                if ($tag.LayerIdx -lt $sp.Layers.Count) {
+                    $lyr = $sp.Layers[$tag.LayerIdx]
+                    $lyr.Locked = -not ($lyr.Locked -eq $true)
+                    # Se desbloqueando e o handle mudou, atualiza com janela corrente do processo
+                    if (-not $lyr.Locked -and $lyr.Process) {
+                        $cur = Get-VisibleWindows | Where-Object { $_.Process -eq $lyr.Process } | Select-Object -First 1
+                        if ($cur) { $lyr.Handle = $cur.Handle; $lyr.Title = $cur.Title }
+                    }
+                }
+                Build-SpacePanel
+                $pnlPreview.Invalidate()
+            })
+            $pnlSpaces.Controls.Add($btnLock)
+
+            # Texto: process para unlocked, titulo para locked
+            $displayText = if ($isLocked -or -not $layer.Process) {
+                $t = if ($layer.Title) { $layer.Title } else { "?" }
+                if ($t.Length -gt 22) { $t.Substring(0, 19) + "..." } else { $t }
+            } else {
+                "[$($layer.Process)]"
+            }
 
             $lblLayer = New-Object System.Windows.Forms.Label
-            $lblLayer.Text      = "  L$($layerIdx + 1): $lt"
-            $lblLayer.ForeColor = $cMuted
+            $lblLayer.Text      = " L$($layerIdx + 1): $displayText"
+            $lblLayer.ForeColor = if ($isLocked) { $cOrange } else { $cMuted }
             $lblLayer.Font      = New-Object System.Drawing.Font("Segoe UI", 8)
-            $lblLayer.Location  = New-Object System.Drawing.Point(10, $y)
-            $lblLayer.Size      = New-Object System.Drawing.Size(208, 16)
+            $lblLayer.Location  = New-Object System.Drawing.Point(28, $y)
+            $lblLayer.Size      = New-Object System.Drawing.Size(188, 16)
             $pnlSpaces.Controls.Add($lblLayer)
 
             # Botao [X] remover layer
@@ -883,7 +949,7 @@ function Build-SpacePanel {
             if ($popup.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK -and $lstPopup.SelectedIndex -ge 0) {
                 $selWin = $popupHandles[$lstPopup.SelectedIndex]
                 $space = $script:currentSpaces[$spIdx]
-                [void]$space.Layers.Add(@{ Handle = $selWin.Handle; Title = $selWin.Title })
+                [void]$space.Layers.Add(@{ Handle = $selWin.Handle; Title = $selWin.Title; Process = $selWin.Process; Locked = $false })
                 Build-SpacePanel
                 $pnlPreview.Invalidate()
             }
@@ -1001,12 +1067,13 @@ function Select-Layout($name, $source) {
     $script:currentSpaces = @()
     foreach ($s in $saved.Spaces) {
         $sp = @{
-            Name   = $s.Name
-            Zone   = @($s.Zone)
-            Layers = [System.Collections.ArrayList]::new()
+            Name     = $s.Name
+            Zone     = @($s.Zone)
+            Layers   = [System.Collections.ArrayList]::new()
+            Shortcut = if ($s.Shortcut) { $s.Shortcut } else { "" }
         }
         foreach ($l in $s.Layers) {
-            [void]$sp.Layers.Add(@{ Handle = $l.Handle; Title = $l.Title })
+            [void]$sp.Layers.Add(@{ Handle = $l.Handle; Title = $l.Title; Process = $l.Process; Locked = $l.Locked })
         }
         $script:currentSpaces += $sp
     }
@@ -1037,36 +1104,7 @@ $btnApply.add_Click({
         $lblStatus.ForeColor = $cOrange
         return
     }
-    $applied = 0
-    foreach ($space in $script:currentSpaces) {
-        $z = ConvertZone $space.Zone
-        $layerCount = $space.Layers.Count
-        if ($layerCount -le 0) {
-            continue
-        } elseif ($layerCount -eq 1) {
-            $layerW = $z.W
-            $layerH = $z.H
-        } else {
-            $totalGap = ($layerCount - 1) * 1
-            $layerW = [Math]::Max(100, ($z.W - $totalGap) / $layerCount)
-            $layerH = [Math]::Max(50, ($z.H - $totalGap) / $layerCount)
-        }
-        foreach ($i in 0..($layerCount - 1)) {
-            $layer = $space.Layers[$i]
-            $offset = $i * 1
-            $lx = $z.X + ($offset - (($layerCount - 1) * 1) / 2)
-            $ly = $z.Y + ($offset - (($layerCount - 1) * 1) / 2)
-            try {
-                [WinAPI]::MoveWindow($layer.Handle, [int]$lx, [int]$ly, [int]$layerW, [int]$layerH)
-                $applied++
-            } catch {}
-        }
-        # Ultima layer fica em foreground
-        if ($space.Layers.Count -gt 0) {
-            $topLayer = $space.Layers[$space.Layers.Count - 1]
-            [WinAPI]::SetForegroundWindow($topLayer.Handle)
-        }
-    }
+    $applied = Apply-Spaces $script:currentSpaces
     $lblStatus.Text      = "Layout aplicado: $applied janela(s) posicionada(s)."
     $lblStatus.ForeColor = $cGreen
 })
@@ -1118,12 +1156,13 @@ $btnSaveCurrent.add_Click({
         $spaces = @()
         foreach ($s in $script:currentSpaces) {
             $sp = @{
-                Name   = $s.Name
-                Zone   = @($s.Zone)
-                Layers = [System.Collections.ArrayList]::new()
+                Name     = $s.Name
+                Zone     = @($s.Zone)
+                Layers   = [System.Collections.ArrayList]::new()
+                Shortcut = if ($s.Shortcut) { $s.Shortcut } else { "" }
             }
             foreach ($l in $s.Layers) {
-                [void]$sp.Layers.Add(@{ Handle = $l.Handle; Title = $l.Title })
+                [void]$sp.Layers.Add(@{ Handle = $l.Handle; Title = $l.Title; Process = $l.Process; Locked = $l.Locked })
             }
             $spaces += $sp
         }
@@ -1289,7 +1328,7 @@ $btnSnapshot.add_Click({
             Layers   = [System.Collections.ArrayList]::new()
             Shortcut = ""
         }
-        [void]$sp.Layers.Add(@{ Handle = $w.Handle; Title = $w.Title })
+        [void]$sp.Layers.Add(@{ Handle = $w.Handle; Title = $w.Title; Process = $w.Process; Locked = $false })
         $script:currentSpaces += $sp
         $spaceIdx++
     }
@@ -1377,10 +1416,22 @@ function Apply-SpaceHotkey($space) {
     $foreWin = [WinAPI]::GetForegroundWindow()
     $title   = [WinAPI]::GetTitle($foreWin)
     if (-not $title -or $title -like "*SnapLayout*") { return }
-    # Se o handle ja e layer neste space, apenas reposiciona sem duplicar
+    # Verificar se esta janela esta locked em outro space
+    foreach ($sp in $script:currentSpaces) {
+        if ($sp -eq $space) { continue }
+        $lockedThere = $sp.Layers | Where-Object { $_.Locked -eq $true -and $_.Handle -eq $foreWin }
+        if ($lockedThere) {
+            $short = if ($title.Length -gt 30) { $title.Substring(0, 27) + "..." } else { $title }
+            $lblStatus.Text      = "'$short' esta locked em '$($sp.Name)'."
+            $lblStatus.ForeColor = $cOrange
+            return
+        }
+    }
+    $proc = Get-WindowProcess $foreWin
+    # Se ja existe layer com este handle, apenas reposiciona sem duplicar
     $existing = $space.Layers | Where-Object { $_.Handle -eq $foreWin } | Select-Object -First 1
     if (-not $existing) {
-        [void]$space.Layers.Add(@{ Handle = $foreWin; Title = $title })
+        [void]$space.Layers.Add(@{ Handle = $foreWin; Title = $title; Process = $proc; Locked = $false })
     }
     $z = ConvertZone $space.Zone
     [WinAPI]::MoveWindow($foreWin, $z.X, $z.Y, $z.W, $z.H)
@@ -1392,59 +1443,82 @@ function Apply-SpaceHotkey($space) {
     $lblStatus.ForeColor = $cGreen
 }
 
+function Apply-Spaces($spaces) {
+    $applied    = 0
+    $allVisible = Get-VisibleWindows
+    # Coletar handles locked para nao move-los em slots de processo de outros spaces
+    $lockedHandles = [System.Collections.Generic.HashSet[IntPtr]]::new()
+    foreach ($sp in $spaces) {
+        foreach ($l in $sp.Layers) {
+            if ($l.Locked -eq $true -and [WinAPI]::IsWindow($l.Handle)) {
+                [void]$lockedHandles.Add($l.Handle)
+            }
+        }
+    }
+    foreach ($space in $spaces) {
+        $z = ConvertZone $space.Zone
+        $windows = [System.Collections.ArrayList]::new()
+        foreach ($layer in $space.Layers) {
+            if ($layer.Locked -eq $true) {
+                if ([WinAPI]::IsWindow($layer.Handle) -and -not $windows.Contains($layer.Handle)) {
+                    [void]$windows.Add($layer.Handle)
+                }
+            } elseif ($layer.Process) {
+                $matches = $allVisible | Where-Object { $_.Process -eq $layer.Process -and -not $lockedHandles.Contains($_.Handle) }
+                foreach ($m in $matches) {
+                    if (-not $windows.Contains($m.Handle)) { [void]$windows.Add($m.Handle) }
+                }
+            } elseif ([WinAPI]::IsWindow($layer.Handle) -and -not $windows.Contains($layer.Handle)) {
+                [void]$windows.Add($layer.Handle)
+            }
+        }
+        $count = $windows.Count
+        if ($count -le 0) { continue }
+        if ($count -eq 1) { $layerW = $z.W; $layerH = $z.H }
+        else {
+            $totalGap = ($count - 1) * 1
+            $layerW = [Math]::Max(100, ($z.W - $totalGap) / $count)
+            $layerH = [Math]::Max(50, ($z.H - $totalGap) / $count)
+        }
+        foreach ($wi in 0..($count - 1)) {
+            $hwnd = $windows[$wi]
+            $offset = $wi * 1
+            $lx = $z.X + ($offset - (($count - 1) * 1) / 2)
+            $ly = $z.Y + ($offset - (($count - 1) * 1) / 2)
+            try { [WinAPI]::MoveWindow($hwnd, [int]$lx, [int]$ly, [int]$layerW, [int]$layerH); $applied++ } catch {}
+        }
+        [WinAPI]::SetForegroundWindow($windows[$count - 1])
+    }
+    return $applied
+}
+
 function Apply-LayoutByName($name) {
     $layout = $script:savedLayouts[$name]
     if (-not $layout) { return }
-    foreach ($space in $layout.Spaces) {
-        $z = ConvertZone $space.Zone
-        $layerCount = $space.Layers.Count
-        if ($layerCount -le 0) {
-            continue
-        } elseif ($layerCount -eq 1) {
-            $layerW = $z.W
-            $layerH = $z.H
-        } else {
-            $totalGap = ($layerCount - 1) * 1
-            $layerW = [Math]::Max(100, ($z.W - $totalGap) / $layerCount)
-            $layerH = [Math]::Max(50, ($z.H - $totalGap) / $layerCount)
-        }
-        foreach ($i in 0..($layerCount - 1)) {
-            $layer = $space.Layers[$i]
-            $offset = $i * 1
-            $lx = $z.X + ($offset - (($layerCount - 1) * 1) / 2)
-            $ly = $z.Y + ($offset - (($layerCount - 1) * 1) / 2)
-            try {
-                [WinAPI]::MoveWindow($layer.Handle, [int]$lx, [int]$ly, [int]$layerW, [int]$layerH)
-            } catch {}
-        }
-        if ($space.Layers.Count -gt 0) {
-            $topLayer = $space.Layers[$space.Layers.Count - 1]
-            [WinAPI]::SetForegroundWindow($topLayer.Handle)
-        }
-    }
+    Apply-Spaces $layout.Spaces
 }
 
 $hotkeyTimer = New-Object System.Windows.Forms.Timer
 $hotkeyTimer.Interval = 200
 $hotkeyTimer.add_Tick({
-    # --- Pruning: remover layers de janelas fechadas ---
+    # --- Pruning: remover layers de janelas/processos encerrados ---
     $pruned = $false
-    $visibleTitles = $null  # lazy: so carregado se necessario
+    $runningProcs = $null  # lazy: so carregado para layers de processo
     foreach ($space in $script:currentSpaces) {
         $toRemove = @()
         foreach ($layer in $space.Layers) {
-            $gone = -not [WinAPI]::IsWindow($layer.Handle)
-            if (-not $gone -and $layer.Title) {
-                $curTitle = [WinAPI]::GetTitle($layer.Handle)
-                # Se o titulo do HWND mudou, o documento original pode ter fechado
-                # (ex: Word MDI onde varios docs compartilham o mesmo HWND).
-                # Confirma buscando se alguma janela visivel ainda tem o titulo original.
-                if ($curTitle -and $curTitle -ne $layer.Title) {
-                    if ($null -eq $visibleTitles) {
-                        $visibleTitles = @(Get-VisibleWindows | ForEach-Object { $_.Title })
-                    }
-                    if ($visibleTitles -notcontains $layer.Title) { $gone = $true }
+            if ($layer.Locked -eq $true) {
+                # Locked: prune apenas se o HWND especifico foi destruido
+                $gone = -not [WinAPI]::IsWindow($layer.Handle)
+            } elseif ($layer.Process) {
+                # Baseado em processo: prune se o processo nao esta mais rodando
+                if ($null -eq $runningProcs) {
+                    $runningProcs = @([System.Diagnostics.Process]::GetProcesses() | ForEach-Object { $_.ProcessName })
                 }
+                $gone = $runningProcs -notcontains $layer.Process
+            } else {
+                # Legado (sem process): verificar HWND
+                $gone = -not [WinAPI]::IsWindow($layer.Handle)
             }
             if ($gone) { $toRemove += $layer }
         }
