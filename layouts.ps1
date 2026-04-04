@@ -500,6 +500,15 @@ $pnlPreview.add_Paint({
             $layerIdx++
         }
 
+        # Atalho do space (canto inferior direito)
+        if ($space.Shortcut) {
+            $fontShortcut = New-Object System.Drawing.Font("Segoe UI", 7, [System.Drawing.FontStyle]::Bold)
+            $scBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(200, 180, 220, 255))
+            $scText  = $space.Shortcut
+            $scSize  = $g.MeasureString($scText, $fontShortcut)
+            $g.DrawString($scText, $fontShortcut, $scBrush, ($rx + $rw - $scSize.Width - 4), ($ry + $rh - $scSize.Height - 2))
+        }
+
         $i++
     }
 
@@ -526,13 +535,23 @@ $pnlPreview.add_MouseMove({
     if ($script:dragSpaceIdx -ge 0) {
         $space = $script:currentSpaces[$script:dragSpaceIdx]
         $oz = $script:dragStartZone
-        if ($script:dragEdge -eq "right" -or $script:dragEdge -eq "corner") {
-            $newW = [Math]::Round($e.X / $pw * 100) - $oz[0]
-            $space.Zone[2] = [Math]::Max(5, [Math]::Min(100 - $oz[0], $newW))
+        $curX = [Math]::Round($e.X / $pw * 100)
+        $curY = [Math]::Round($e.Y / $ph * 100)
+        if ($script:dragEdge -match "right") {
+            $space.Zone[2] = [Math]::Max(5, [Math]::Min(100 - $oz[0], $curX - $oz[0]))
         }
-        if ($script:dragEdge -eq "bottom" -or $script:dragEdge -eq "corner") {
-            $newH = [Math]::Round($e.Y / $ph * 100) - $oz[1]
-            $space.Zone[3] = [Math]::Max(5, [Math]::Min(100 - $oz[1], $newH))
+        if ($script:dragEdge -match "bottom") {
+            $space.Zone[3] = [Math]::Max(5, [Math]::Min(100 - $oz[1], $curY - $oz[1]))
+        }
+        if ($script:dragEdge -match "left") {
+            $newX = [Math]::Max(0, [Math]::Min($oz[0] + $oz[2] - 5, $curX))
+            $space.Zone[2] = $oz[0] + $oz[2] - $newX
+            $space.Zone[0] = $newX
+        }
+        if ($script:dragEdge -match "top") {
+            $newY = [Math]::Max(0, [Math]::Min($oz[1] + $oz[3] - 5, $curY))
+            $space.Zone[3] = $oz[1] + $oz[3] - $newY
+            $space.Zone[1] = $newY
         }
         $pnlPreview.Invalidate()
         return
@@ -545,13 +564,17 @@ $pnlPreview.add_MouseMove({
         $ry = 4 + [int]($ph * $zp[1] / 100)
         $rw = [int]($pw * $zp[2] / 100) - 4
         $rh = [int]($ph * $zp[3] / 100) - 4
-        $ex = $rx + $rw
-        $ey = $ry + $rh
-        $nr = [Math]::Abs($e.X - $ex) -le $hit -and $e.Y -ge ($ry-$hit) -and $e.Y -le ($ey+$hit)
-        $nb = [Math]::Abs($e.Y - $ey) -le $hit -and $e.X -ge ($rx-$hit) -and $e.X -le ($ex+$hit)
-        if ($nr -and $nb) { $pnlPreview.Cursor = [System.Windows.Forms.Cursors]::SizeNWSE; $found=$true; break }
-        elseif ($nr)      { $pnlPreview.Cursor = [System.Windows.Forms.Cursors]::SizeWE;   $found=$true; break }
-        elseif ($nb)      { $pnlPreview.Cursor = [System.Windows.Forms.Cursors]::SizeNS;   $found=$true; break }
+        $ex = $rx + $rw; $ey = $ry + $rh
+        $nr = [Math]::Abs($e.X - $ex) -le $hit -and $e.Y -ge $ry -and $e.Y -le $ey
+        $nb = [Math]::Abs($e.Y - $ey) -le $hit -and $e.X -ge $rx -and $e.X -le $ex
+        $nl = [Math]::Abs($e.X - $rx) -le $hit -and $e.Y -ge $ry -and $e.Y -le $ey
+        $nt = [Math]::Abs($e.Y - $ry) -le $hit -and $e.X -ge $rx -and $e.X -le $ex
+        $cursor = if     ($nr -and $nb) { [System.Windows.Forms.Cursors]::SizeNWSE }
+                  elseif ($nl -and $nt) { [System.Windows.Forms.Cursors]::SizeNWSE }
+                  elseif ($nr -or $nl)  { [System.Windows.Forms.Cursors]::SizeWE }
+                  elseif ($nb -or $nt)  { [System.Windows.Forms.Cursors]::SizeNS }
+                  else                  { $null }
+        if ($cursor) { $pnlPreview.Cursor = $cursor; $found = $true; break }
     }
     if (-not $found) { $pnlPreview.Cursor = [System.Windows.Forms.Cursors]::Default }
 })
@@ -570,14 +593,20 @@ $pnlPreview.add_MouseDown({
         $ry = 4 + [int]($ph * $zp[1] / 100)
         $rw = [int]($pw * $zp[2] / 100) - 4
         $rh = [int]($ph * $zp[3] / 100) - 4
-        $ex = $rx + $rw
-        $ey = $ry + $rh
-        $nr = [Math]::Abs($e.X - $ex) -le $hit -and $e.Y -ge ($ry-$hit) -and $e.Y -le ($ey+$hit)
-        $nb = [Math]::Abs($e.Y - $ey) -le $hit -and $e.X -ge ($rx-$hit) -and $e.X -le ($ex+$hit)
-        if ($nr -or $nb) {
+        $ex = $rx + $rw; $ey = $ry + $rh
+        $nr = [Math]::Abs($e.X - $ex) -le $hit -and $e.Y -ge $ry -and $e.Y -le $ey
+        $nb = [Math]::Abs($e.Y - $ey) -le $hit -and $e.X -ge $rx -and $e.X -le $ex
+        $nl = [Math]::Abs($e.X - $rx) -le $hit -and $e.Y -ge $ry -and $e.Y -le $ey
+        $nt = [Math]::Abs($e.Y - $ry) -le $hit -and $e.X -ge $rx -and $e.X -le $ex
+        $edge = ""
+        if ($nr) { $edge += "right" }
+        if ($nb) { $edge += "bottom" }
+        if ($nl) { $edge += "left" }
+        if ($nt) { $edge += "top" }
+        if ($edge) {
             $script:dragSpaceIdx  = $idx
             $script:dragStartZone = @($zp[0], $zp[1], $zp[2], $zp[3])
-            $script:dragEdge      = if ($nr -and $nb) { "corner" } elseif ($nr) { "right" } else { "bottom" }
+            $script:dragEdge      = $edge
             $pnlPreview.Capture   = $true
             break
         }
@@ -1347,9 +1376,14 @@ function Apply-SpaceHotkey($space) {
     $foreWin = [WinAPI]::GetForegroundWindow()
     $title   = [WinAPI]::GetTitle($foreWin)
     if (-not $title -or $title -like "*SnapLayout*") { return }
+    # Se o handle ja e layer neste space, apenas reposiciona sem duplicar
+    $existing = $space.Layers | Where-Object { $_.Handle -eq $foreWin } | Select-Object -First 1
+    if (-not $existing) {
+        [void]$space.Layers.Add(@{ Handle = $foreWin; Title = $title })
+    }
     $z = ConvertZone $space.Zone
     [WinAPI]::MoveWindow($foreWin, $z.X, $z.Y, $z.W, $z.H)
-    [void]$space.Layers.Add(@{ Handle = $foreWin; Title = $title })
+    [WinAPI]::SetForegroundWindow($foreWin)
     Build-SpacePanel
     $pnlPreview.Invalidate()
     $short = if ($title.Length -gt 40) { $title.Substring(0, 37) + "..." } else { $title }
