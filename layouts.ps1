@@ -966,6 +966,7 @@ function Build-SpacePanel {
             if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
                 $sp.Shortcut = $txtKey.Text
                 Register-SpaceHotkeys
+                $pnlPreview.Invalidate()
                 $short = if ($txtKey.Text) { "'$($txtKey.Text)'" } else { "removido" }
                 $lblStatus.Text      = "Atalho $short definido para '$($sp.Name)'."
                 $lblStatus.ForeColor = $cGreen
@@ -1428,12 +1429,24 @@ $hotkeyTimer.Interval = 200
 $hotkeyTimer.add_Tick({
     # --- Pruning: remover layers de janelas fechadas ---
     $pruned = $false
+    $visibleTitles = $null  # lazy: so carregado se necessario
     foreach ($space in $script:currentSpaces) {
         $toRemove = @()
         foreach ($layer in $space.Layers) {
-            if (-not [WinAPI]::IsWindow($layer.Handle)) {
-                $toRemove += $layer
+            $gone = -not [WinAPI]::IsWindow($layer.Handle)
+            if (-not $gone -and $layer.Title) {
+                $curTitle = [WinAPI]::GetTitle($layer.Handle)
+                # Se o titulo do HWND mudou, o documento original pode ter fechado
+                # (ex: Word MDI onde varios docs compartilham o mesmo HWND).
+                # Confirma buscando se alguma janela visivel ainda tem o titulo original.
+                if ($curTitle -and $curTitle -ne $layer.Title) {
+                    if ($null -eq $visibleTitles) {
+                        $visibleTitles = @(Get-VisibleWindows | ForEach-Object { $_.Title })
+                    }
+                    if ($visibleTitles -notcontains $layer.Title) { $gone = $true }
+                }
             }
+            if ($gone) { $toRemove += $layer }
         }
         foreach ($r in $toRemove) {
             $space.Layers.Remove($r)
