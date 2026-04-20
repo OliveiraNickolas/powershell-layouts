@@ -635,12 +635,22 @@ $pnlPreview.add_Paint({
     if ($script:currentSpaces.Count -eq 0) {
         $f = New-Object System.Drawing.Font("Segoe UI", 10)
         $g.DrawString("Selecione um layout", $f, [System.Drawing.Brushes]::Gray, 200, 170)
+        $f.Dispose()
         return
     }
 
     $pw = $pnlPreview.Width  - 8
     $ph = $pnlPreview.Height - 8
     $i  = 0
+
+    $fontBold     = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
+    $fontSmall    = New-Object System.Drawing.Font("Segoe UI", 7)
+    $fontShortcut = New-Object System.Drawing.Font("Segoe UI", 7, [System.Drawing.FontStyle]::Bold)
+    $textBrush    = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
+    $mutedBrush   = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(180, 180, 195))
+    $scBrush      = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(200, 180, 220, 255))
+    $borderPen    = New-Object System.Drawing.Pen($cBorder, 1)
+    $highlightPen = New-Object System.Drawing.Pen([System.Drawing.Color]::Yellow, 3)
 
     foreach ($space in $script:currentSpaces) {
         $zp = $space.Zone
@@ -649,27 +659,20 @@ $pnlPreview.add_Paint({
         $rw = [int]($pw * $zp[2] / 100) - 4
         $rh = [int]($ph * $zp[3] / 100) - 4
 
-        $ci = $i % $script:spaceColors.Count
+        $ci    = $i % $script:spaceColors.Count
         $brush = New-Object System.Drawing.SolidBrush($script:spaceColors[$ci].Fill)
         $pen   = New-Object System.Drawing.Pen($script:spaceColors[$ci].Stroke, 2)
         $g.FillRectangle($brush, $rx, $ry, $rw, $rh)
         $g.DrawRectangle($pen, $rx, $ry, $rw, $rh)
+        $brush.Dispose()
+        $pen.Dispose()
 
-        # Desenhar highlight ao redor do space destacado
         if ($i -eq $script:highlightedSpaceIndex) {
-            $highlightPen = New-Object System.Drawing.Pen([System.Drawing.Color]::Yellow, 3)
             $g.DrawRectangle($highlightPen, ($rx - 2), ($ry - 2), ($rw + 4), ($rh + 4))
         }
 
-        # Nome do space
-        $fontBold = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
-        $fontSmall = New-Object System.Drawing.Font("Segoe UI", 7)
-        $textBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
-        $mutedBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(180, 180, 195))
-
         $g.DrawString($space.Name, $fontBold, $textBrush, ($rx + 6), ($ry + 4))
 
-        # Layers
         $ly = $ry + 22
         $layerIdx = 1
         foreach ($layer in $space.Layers) {
@@ -677,27 +680,26 @@ $pnlPreview.add_Paint({
                 $g.DrawString("...", $fontSmall, $mutedBrush, ($rx + 10), $ly)
                 break
             }
-            $lt = if ($layer.Title.Length -gt 20) { $layer.Title.Substring(0, 17) + "..." } else { $layer.Title }
+            $t  = if ($layer.Title) { $layer.Title } else { "" }
+            $lt = if ($t.Length -gt 20) { $t.Substring(0, 17) + "..." } else { $t }
             $g.DrawString("L${layerIdx}: $lt", $fontSmall, $mutedBrush, ($rx + 10), $ly)
             $ly += 14
             $layerIdx++
         }
 
-        # Atalho do space (canto inferior direito)
         if ($space.Shortcut) {
-            $fontShortcut = New-Object System.Drawing.Font("Segoe UI", 7, [System.Drawing.FontStyle]::Bold)
-            $scBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(200, 180, 220, 255))
-            $scText  = $space.Shortcut
-            $scSize  = $g.MeasureString($scText, $fontShortcut)
-            $g.DrawString($scText, $fontShortcut, $scBrush, ($rx + $rw - $scSize.Width - 4), ($ry + $rh - $scSize.Height - 2))
+            $scSize = $g.MeasureString($space.Shortcut, $fontShortcut)
+            $g.DrawString($space.Shortcut, $fontShortcut, $scBrush, ($rx + $rw - $scSize.Width - 4), ($ry + $rh - $scSize.Height - 2))
         }
 
         $i++
     }
 
-    # Borda do preview
-    $borderPen = New-Object System.Drawing.Pen($cBorder, 1)
     $g.DrawRectangle($borderPen, 0, 0, ($pnlPreview.Width - 1), ($pnlPreview.Height - 1))
+
+    $fontBold.Dispose();  $fontSmall.Dispose();  $fontShortcut.Dispose()
+    $textBrush.Dispose(); $mutedBrush.Dispose(); $scBrush.Dispose()
+    $borderPen.Dispose(); $highlightPen.Dispose()
 })
 
 # -- Double-click no preview para resetar highlight
@@ -960,7 +962,8 @@ function Build-SpacePanel {
         $btnDelSpace.add_Click({
             param($s, $e)
             $spIdx = $s.Tag
-            $script:currentSpaces = $script:currentSpaces | Where-Object { $_ -ne $script:currentSpaces[$spIdx] }
+            $target = $script:currentSpaces[$spIdx]
+            $script:currentSpaces = @($script:currentSpaces | Where-Object { $_ -ne $target })
             if ($script:highlightedSpaceIndex -eq $spIdx) {
                 $script:highlightedSpaceIndex = -1
             } elseif ($script:highlightedSpaceIndex -gt $spIdx) {
@@ -1572,6 +1575,7 @@ function Apply-SpaceHotkey($space) {
             return
         }
     }
+    if (-not [WinAPI]::IsWindow($foreWin)) { return }
     $proc = Get-WindowProcess $foreWin
     # Se ja existe layer com este handle, apenas reposiciona sem duplicar
     $existing = $space.Layers | Where-Object { $_.Handle -eq $foreWin } | Select-Object -First 1
@@ -1579,8 +1583,10 @@ function Apply-SpaceHotkey($space) {
         [void]$space.Layers.Add(@{ Handle = $foreWin; Title = $title; Process = $proc; Locked = $false })
     }
     $z = ConvertZone $space.Zone
-    [WinAPI]::MoveWindow($foreWin, $z.X, $z.Y, $z.W, $z.H)
-    [WinAPI]::SetForegroundWindow($foreWin)
+    try {
+        [WinAPI]::MoveWindow($foreWin, $z.X, $z.Y, $z.W, $z.H)
+        [WinAPI]::SetForegroundWindow($foreWin)
+    } catch { return }
     Build-SpacePanel
     $pnlPreview.Invalidate()
     $short = if ($title.Length -gt 40) { $title.Substring(0, 37) + "..." } else { $title }
@@ -1609,8 +1615,8 @@ function Apply-Spaces($spaces) {
                     [void]$windows.Add($layer.Handle)
                 }
             } elseif ($layer.Process) {
-                $matches = $allVisible | Where-Object { $_.Process -eq $layer.Process -and -not $lockedHandles.Contains($_.Handle) }
-                foreach ($m in $matches) {
+                $procWins = $allVisible | Where-Object { $_.Process -eq $layer.Process -and -not $lockedHandles.Contains($_.Handle) }
+                foreach ($m in $procWins) {
                     if (-not $windows.Contains($m.Handle)) { [void]$windows.Add($m.Handle) }
                 }
             } elseif ([WinAPI]::IsWindow($layer.Handle) -and -not $windows.Contains($layer.Handle)) {
