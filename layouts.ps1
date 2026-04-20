@@ -1454,11 +1454,11 @@ $btnSnapshot.add_Click({
     $spaceIdx = 1
     foreach ($w in $wins) {
         $rect = [WinAPI]::GetRect($w.Handle)
-        # Converter para percentagem
-        $xp = [Math]::Max(0, [Math]::Min(100, [Math]::Round(($rect.Left - $SX) / $SW * 100)))
-        $yp = [Math]::Max(0, [Math]::Min(100, [Math]::Round(($rect.Top - $SY) / $SH * 100)))
-        $wp = [Math]::Max(5, [Math]::Min(100, [Math]::Round(($rect.Right - $rect.Left) / $SW * 100)))
-        $hp = [Math]::Max(5, [Math]::Min(100, [Math]::Round(($rect.Bottom - $rect.Top) / $SH * 100)))
+        # Converter para percentagem relativa à tela primária (pode ser negativo ou >100 em multi-monitor)
+        $xp = [Math]::Round(($rect.Left - $SX) / $SW * 100)
+        $yp = [Math]::Round(($rect.Top  - $SY) / $SH * 100)
+        $wp = [Math]::Max(5, [Math]::Round(($rect.Right  - $rect.Left) / $SW * 100))
+        $hp = [Math]::Max(5, [Math]::Round(($rect.Bottom - $rect.Top)  / $SH * 100))
         # Snap para grid de 5%
         $xp = [Math]::Round($xp / 5) * 5
         $yp = [Math]::Round($yp / 5) * 5
@@ -1480,7 +1480,7 @@ $btnSnapshot.add_Click({
 
     $script:currentName   = "Snapshot"
     $script:currentSource = "snapshot"
-    $lstSaved.ClearSelected()
+    Build-LayoutPanel
     Build-SpacePanel
     $pnlPreview.Invalidate()
     $lblStatus.Text      = "Snapshot: $($script:currentSpaces.Count) janela(s) capturada(s). Salve para manter."
