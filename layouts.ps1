@@ -335,14 +335,13 @@ $lblSaved.Location  = New-Object System.Drawing.Point(8, 124)
 $lblSaved.Size      = New-Object System.Drawing.Size(194, 13)
 $form.Controls.Add($lblSaved)
 
-$lstSaved = New-Object System.Windows.Forms.ListBox
-$lstSaved.Location    = New-Object System.Drawing.Point(8, 140)
-$lstSaved.Size        = New-Object System.Drawing.Size(194, 330)
-$lstSaved.BackColor   = $cSurface
-$lstSaved.ForeColor   = $cText
-$lstSaved.BorderStyle = "None"
-$lstSaved.Font        = New-Object System.Drawing.Font("Segoe UI", 9)
-$form.Controls.Add($lstSaved)
+$pnlSaved = New-Object System.Windows.Forms.Panel
+$pnlSaved.Location          = New-Object System.Drawing.Point(8, 140)
+$pnlSaved.Size              = New-Object System.Drawing.Size(194, 330)
+$pnlSaved.BackColor         = $cSurface
+$pnlSaved.AutoScroll        = $true
+$pnlSaved.AutoScrollMinSize = New-Object System.Drawing.Size(1, 1)
+$form.Controls.Add($pnlSaved)
 
 $btnDeleteSaved = New-Object System.Windows.Forms.Button
 $btnDeleteSaved.Text      = "Excluir"
@@ -459,14 +458,169 @@ $form.Controls.Add($lblStatus)
 #  FUNCOES DE REFRESH
 # ============================================================
 
-function Refresh-SavedList {
-    $lstSaved.Items.Clear()
-    foreach ($name in $script:savedLayouts.Keys) {
-        $sc = $script:savedLayouts[$name].Shortcut
-        $display = if ($sc) { "$name [$sc]" } else { $name }
-        [void]$lstSaved.Items.Add($display)
+function Build-LayoutPanel {
+    $pnlSaved.Controls.Clear()
+    $y = 4
+    $layoutNames = @($script:savedLayouts.Keys)
+
+    for ($idx = 0; $idx -lt $layoutNames.Count; $idx++) {
+        $name      = $layoutNames[$idx]
+        $layout    = $script:savedLayouts[$name]
+        $isSelected = ($name -eq $script:currentName)
+
+        $pnlRow = New-Object System.Windows.Forms.Panel
+        $pnlRow.Location  = New-Object System.Drawing.Point(2, $y)
+        $pnlRow.Size      = New-Object System.Drawing.Size(182, 26)
+        $pnlRow.BackColor = if ($isSelected) { [System.Drawing.Color]::FromArgb(50, 50, 65) } else { $cSurface }
+        $pnlRow.Cursor    = [System.Windows.Forms.Cursors]::Hand
+        $pnlRow.Tag       = $name
+        $pnlRow.add_Click({
+            param($s, $e)
+            $n = $s.Tag
+            Select-Layout $n "saved"
+            Build-LayoutPanel
+        })
+        $pnlSaved.Controls.Add($pnlRow)
+
+        $bar = New-Object System.Windows.Forms.Panel
+        $bar.Location  = New-Object System.Drawing.Point(0, 0)
+        $bar.Size      = New-Object System.Drawing.Size(4, 26)
+        $bar.BackColor = if ($isSelected) { $cAccent } else { $cBorder }
+        $pnlRow.Controls.Add($bar)
+
+        $sc = $layout.Shortcut
+        $displayText = if ($sc) { "$name  [$sc]" } else { $name }
+
+        $lblLayoutName = New-Object System.Windows.Forms.Label
+        $lblLayoutName.Text      = $displayText
+        $lblLayoutName.ForeColor = if ($isSelected) { $cText } else { $cMuted }
+        $lblLayoutName.Font      = New-Object System.Drawing.Font("Segoe UI", 8.5)
+        $lblLayoutName.Location  = New-Object System.Drawing.Point(8, 4)
+        $lblLayoutName.Size      = New-Object System.Drawing.Size(118, 18)
+        $lblLayoutName.Cursor    = [System.Windows.Forms.Cursors]::IBeam
+
+        $txtRenameLayout = New-Object System.Windows.Forms.TextBox
+        $txtRenameLayout.Text        = $name
+        $txtRenameLayout.Font        = New-Object System.Drawing.Font("Segoe UI", 8.5)
+        $txtRenameLayout.Location    = New-Object System.Drawing.Point(7, 3)
+        $txtRenameLayout.Size        = New-Object System.Drawing.Size(118, 20)
+        $txtRenameLayout.BackColor   = $cSurface
+        $txtRenameLayout.ForeColor   = $cText
+        $txtRenameLayout.BorderStyle = "FixedSingle"
+        $txtRenameLayout.Visible     = $false
+        $txtRenameLayout.Tag         = @{ Name = $name; Label = $lblLayoutName }
+
+        $lblLayoutName.Tag = $txtRenameLayout
+        $lblLayoutName.add_Click({
+            param($s, $e)
+            $txt       = $s.Tag
+            $s.Visible = $false
+            $txt.Visible = $true
+            $txt.SelectAll()
+            $txt.Focus()
+        })
+
+        $txtRenameLayout.add_KeyDown({
+            param($s, $ke)
+            if ($ke.KeyCode -eq [System.Windows.Forms.Keys]::Return) {
+                $ke.SuppressKeyPress = $true
+                $newName = $s.Text.Trim()
+                $oldName = $s.Tag.Name
+                if ($newName -and $newName -ne $oldName -and -not $script:savedLayouts.Contains($newName)) {
+                    $newDict = [ordered]@{}
+                    foreach ($k in $script:savedLayouts.Keys) {
+                        if ($k -eq $oldName) { $newDict[$newName] = $script:savedLayouts[$k] }
+                        else { $newDict[$k] = $script:savedLayouts[$k] }
+                    }
+                    $script:savedLayouts = $newDict
+                    if ($script:currentName -eq $oldName) { $script:currentName = $newName }
+                    Save-AllLayouts
+                    Register-Hotkeys
+                    $lblStatus.Text      = "Layout renomeado para '$newName'."
+                    $lblStatus.ForeColor = $cGreen
+                } elseif ($newName -and $newName -ne $oldName -and $script:savedLayouts.Contains($newName)) {
+                    $lblStatus.Text      = "Ja existe um layout com esse nome."
+                    $lblStatus.ForeColor = $cOrange
+                }
+                Build-LayoutPanel
+            } elseif ($ke.KeyCode -eq [System.Windows.Forms.Keys]::Escape) {
+                $s.Visible           = $false
+                $s.Tag.Label.Visible = $true
+            }
+        })
+
+        $txtRenameLayout.add_LostFocus({
+            param($s, $e)
+            $s.Visible           = $false
+            $s.Tag.Label.Visible = $true
+        })
+
+        $pnlRow.Controls.Add($lblLayoutName)
+        $pnlRow.Controls.Add($txtRenameLayout)
+
+        $btnUp = New-Object System.Windows.Forms.Button
+        $btnUp.Text      = [char]0x25B2
+        $btnUp.Location  = New-Object System.Drawing.Point(130, 2)
+        $btnUp.Size      = New-Object System.Drawing.Size(18, 22)
+        $btnUp.FlatStyle = "Flat"
+        $btnUp.BackColor = $cSurface
+        $btnUp.ForeColor = $cMuted
+        $btnUp.FlatAppearance.BorderSize = 0
+        $btnUp.Font      = New-Object System.Drawing.Font("Segoe UI", 6)
+        $btnUp.Tag       = $idx
+        $btnUp.add_Click({
+            param($s, $e)
+            $i = $s.Tag
+            if ($i -le 0) { return }
+            $keys = @($script:savedLayouts.Keys)
+            $newDict = [ordered]@{}
+            for ($j = 0; $j -lt $keys.Count; $j++) {
+                if     ($j -eq $i - 1) { $newDict[$keys[$i]]     = $script:savedLayouts[$keys[$i]] }
+                elseif ($j -eq $i)     { $newDict[$keys[$i - 1]] = $script:savedLayouts[$keys[$i - 1]] }
+                else                   { $newDict[$keys[$j]]     = $script:savedLayouts[$keys[$j]] }
+            }
+            $script:savedLayouts = $newDict
+            Save-AllLayouts
+            Build-LayoutPanel
+        })
+        $pnlRow.Controls.Add($btnUp)
+
+        $btnDown = New-Object System.Windows.Forms.Button
+        $btnDown.Text      = [char]0x25BC
+        $btnDown.Location  = New-Object System.Drawing.Point(150, 2)
+        $btnDown.Size      = New-Object System.Drawing.Size(18, 22)
+        $btnDown.FlatStyle = "Flat"
+        $btnDown.BackColor = $cSurface
+        $btnDown.ForeColor = $cMuted
+        $btnDown.FlatAppearance.BorderSize = 0
+        $btnDown.Font      = New-Object System.Drawing.Font("Segoe UI", 6)
+        $btnDown.Tag       = @{ Idx = $idx; Total = $layoutNames.Count }
+        $btnDown.add_Click({
+            param($s, $e)
+            $tag   = $s.Tag
+            $i     = $tag.Idx
+            $total = $tag.Total
+            if ($i -ge $total - 1) { return }
+            $keys = @($script:savedLayouts.Keys)
+            $newDict = [ordered]@{}
+            for ($j = 0; $j -lt $keys.Count; $j++) {
+                if     ($j -eq $i)     { $newDict[$keys[$i + 1]] = $script:savedLayouts[$keys[$i + 1]] }
+                elseif ($j -eq $i + 1) { $newDict[$keys[$i]]     = $script:savedLayouts[$keys[$i]] }
+                else                   { $newDict[$keys[$j]]     = $script:savedLayouts[$keys[$j]] }
+            }
+            $script:savedLayouts = $newDict
+            Save-AllLayouts
+            Build-LayoutPanel
+        })
+        $pnlRow.Controls.Add($btnDown)
+
+        $y += 30
     }
+
+    $pnlSaved.AutoScrollMinSize = New-Object System.Drawing.Size(1, $y)
 }
+
+function Refresh-SavedList { Build-LayoutPanel }
 
 # ============================================================
 #  PREVIEW - DESENHO COM SPACES, LAYERS E BOTAO [+]
@@ -1084,14 +1238,6 @@ function Select-Layout($name, $source) {
     $lblStatus.ForeColor = $cMuted
 }
 
-$lstSaved.add_SelectedIndexChanged({
-    $sel = $lstSaved.SelectedItem
-    if ($sel) {
-        # Extrair nome (remover shortcut display)
-        $name = ($sel -replace '\s*\[.*\]\s*$', '')
-        Select-Layout $name "saved"
-    }
-})
 
 # ============================================================
 #  EVENTOS DOS BOTOES
@@ -1180,9 +1326,8 @@ $btnSaveCurrent.add_Click({
 
 # -- Excluir Layout Salvo
 $btnDeleteSaved.add_Click({
-    $sel = $lstSaved.SelectedItem
-    if (-not $sel) { return }
-    $name = ($sel -replace '\s*\[.*\]\s*$', '')
+    $name = $script:currentName
+    if (-not $name) { return }
     $confirm = [System.Windows.Forms.MessageBox]::Show(
         "Excluir o layout '$name'?", "Confirmar",
         [System.Windows.Forms.MessageBoxButtons]::YesNo,
@@ -1190,9 +1335,10 @@ $btnDeleteSaved.add_Click({
     )
     if ($confirm -eq [System.Windows.Forms.DialogResult]::Yes) {
         $script:savedLayouts.Remove($name)
-        Save-AllLayouts
-        Refresh-SavedList
+        $script:currentName   = ""
         $script:currentSpaces = @()
+        Save-AllLayouts
+        Build-LayoutPanel
         Build-SpacePanel
         $pnlPreview.Invalidate()
         $lblStatus.Text      = "Layout '$name' excluido."
@@ -1202,13 +1348,12 @@ $btnDeleteSaved.add_Click({
 
 # -- Definir Atalho
 $btnSetShortcut.add_Click({
-    $sel = $lstSaved.SelectedItem
-    if (-not $sel) {
+    $name = $script:currentName
+    if (-not $name) {
         $lblStatus.Text      = "Selecione um layout salvo primeiro."
         $lblStatus.ForeColor = $cOrange
         return
     }
-    $name = ($sel -replace '\s*\[.*\]\s*$', '')
 
     $dlg = New-Object System.Windows.Forms.Form
     $dlg.Text            = "Definir Atalho - $name"
@@ -1275,7 +1420,7 @@ $btnSetShortcut.add_Click({
     if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
         $script:savedLayouts[$name].Shortcut = $txtKey.Text
         Save-AllLayouts
-        Refresh-SavedList
+        Build-LayoutPanel
         Register-Hotkeys
         $lblStatus.Text      = "Atalho '$($txtKey.Text)' definido para '$name'."
         $lblStatus.ForeColor = $cGreen
