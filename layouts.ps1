@@ -107,6 +107,8 @@ $script:highlightedSpaceIndex = -1
 $script:dragSpaceIdx  = -1
 $script:dragEdge      = ""
 $script:dragStartZone = @()
+# Contador para reduzir frequencia de pruning (a cada N ticks do hotkeyTimer)
+$script:pruneTickCounter = 0
 
 # ============================================================
 #  FUNCOES UTILITARIAS
@@ -150,84 +152,101 @@ function Get-WindowProcess($hwnd) {
 # ============================================================
 
 function Save-AllLayouts {
-    if (-not (Test-Path $script:savePath)) {
-        New-Item -Path $script:savePath -ItemType Directory -Force | Out-Null
-    }
-    $data = @{ version = 1; layouts = @() }
-    foreach ($name in $script:savedLayouts.Keys) {
-        $layout = $script:savedLayouts[$name]
-        $spacesData = @()
-        foreach ($s in $layout.Spaces) {
-            $layersData = @()
-            foreach ($l in $s.Layers) {
-                $layersData += @{
-                    title   = if ($l.Title)   { $l.Title }   else { "" }
-                    process = if ($l.Process) { $l.Process } else { "" }
-                    locked  = if ($l.Locked -eq $true) { $true } else { $false }
+    try {
+        if (-not (Test-Path $script:savePath)) {
+            New-Item -Path $script:savePath -ItemType Directory -Force | Out-Null
+        }
+        $data = @{ version = 1; layouts = @() }
+        foreach ($name in $script:savedLayouts.Keys) {
+            $layout = $script:savedLayouts[$name]
+            $spacesData = @()
+            foreach ($s in $layout.Spaces) {
+                $layersData = @()
+                foreach ($l in $s.Layers) {
+                    $layersData += @{
+                        title   = if ($l.Title)   { $l.Title }   else { "" }
+                        process = if ($l.Process) { $l.Process } else { "" }
+                        locked  = if ($l.Locked -eq $true) { $true } else { $false }
+                    }
+                }
+                $spacesData += @{
+                    name     = $s.Name
+                    zone     = @($s.Zone)
+                    shortcut = if ($s.Shortcut) { $s.Shortcut } else { "" }
+                    layers   = $layersData
                 }
             }
-            $spacesData += @{
-                name     = $s.Name
-                zone     = @($s.Zone)
-                shortcut = if ($s.Shortcut) { $s.Shortcut } else { "" }
-                layers   = $layersData
+            $data.layouts += @{
+                name     = $name
+                shortcut = $layout.Shortcut
+                spaces   = $spacesData
             }
         }
-        $data.layouts += @{
-            name     = $name
-            shortcut = $layout.Shortcut
-            spaces   = $spacesData
+        $json = $data | ConvertTo-Json -Depth 6
+        $tmpFile = $script:saveFile + ".tmp"
+        $json | Set-Content $tmpFile -Encoding UTF8
+        Move-Item $tmpFile $script:saveFile -Force
+        return $true
+    } catch {
+        Write-Warning "Falha ao salvar layouts: $($_.Exception.Message)"
+        if ($script:lblStatus) {
+            $script:lblStatus.Text      = "Falha ao salvar: $($_.Exception.Message)"
+            $script:lblStatus.ForeColor = $cRed
         }
+        return $false
     }
-    $json = $data | ConvertTo-Json -Depth 6
-    $tmpFile = $script:saveFile + ".tmp"
-    $json | Set-Content $tmpFile -Encoding UTF8
-    Move-Item $tmpFile $script:saveFile -Force
 }
 
 function Load-AllLayouts {
     if (-not (Test-Path $script:saveFile)) { return }
     try {
         $json = Get-Content $script:saveFile -Raw | ConvertFrom-Json
-    } catch { return }
+    } catch {
+        Write-Warning "layouts.json corrompido ou ilegivel — nada carregado: $($_.Exception.Message)"
+        return
+    }
     foreach ($l in $json.layouts) {
-        $spaces = @()
-        foreach ($s in $l.spaces) {
-            $sp = @{
-                Name     = $s.name
-                Zone     = @($s.zone)
-                Layers   = [System.Collections.ArrayList]::new()
-                Shortcut = if ($s.shortcut) { $s.shortcut } else { "" }
-            }
-            $visWins = Get-VisibleWindows
-            if ($s.layers) {
-                # Novo formato: array de { title, process, locked }
-                foreach ($ld in $s.layers) {
-                    $proc   = if ($ld.process) { $ld.process } else { "" }
-                    $locked = ($ld.locked -eq $true)
-                    if ($locked) {
-                        $match = $visWins | Where-Object { $_.Title -like "*$($ld.title)*" } | Select-Object -First 1
-                    } else {
-                        $match = if ($proc) { $visWins | Where-Object { $_.Process -eq $proc } | Select-Object -First 1 } else { $null }
+        try {
+            $spaces = @()
+            foreach ($s in $l.spaces) {
+                $sp = @{
+                    Name     = $s.name
+                    Zone     = @($s.zone)
+                    Layers   = [System.Collections.ArrayList]::new()
+                    Shortcut = if ($s.shortcut) { $s.shortcut } else { "" }
+                }
+                $visWins = Get-VisibleWindows
+                if ($s.layers) {
+                    # Novo formato: array de { title, process, locked }
+                    foreach ($ld in $s.layers) {
+                        $proc   = if ($ld.process) { $ld.process } else { "" }
+                        $locked = ($ld.locked -eq $true)
+                        if ($locked) {
+                            $match = $visWins | Where-Object { $_.Title -like "*$($ld.title)*" } | Select-Object -First 1
+                        } else {
+                            $match = if ($proc) { $visWins | Where-Object { $_.Process -eq $proc } | Select-Object -First 1 } else { $null }
+                        }
+                        if ($match) {
+                            [void]$sp.Layers.Add(@{ Handle = $match.Handle; Title = $match.Title; Process = $match.Process; Locked = $locked })
+                        }
                     }
-                    if ($match) {
-                        [void]$sp.Layers.Add(@{ Handle = $match.Handle; Title = $match.Title; Process = $match.Process; Locked = $locked })
+                } elseif ($s.windowTitles) {
+                    # Formato antigo: backward compat
+                    foreach ($wt in $s.windowTitles) {
+                        if (-not $wt) { continue }
+                        $match = $visWins | Where-Object { $_.Title -like "*$wt*" } | Select-Object -First 1
+                        if ($match) {
+                            [void]$sp.Layers.Add(@{ Handle = $match.Handle; Title = $match.Title; Process = $match.Process; Locked = $false })
+                        }
                     }
                 }
-            } elseif ($s.windowTitles) {
-                # Formato antigo: backward compat
-                foreach ($wt in $s.windowTitles) {
-                    if (-not $wt) { continue }
-                    $match = $visWins | Where-Object { $_.Title -like "*$wt*" } | Select-Object -First 1
-                    if ($match) {
-                        [void]$sp.Layers.Add(@{ Handle = $match.Handle; Title = $match.Title; Process = $match.Process; Locked = $false })
-                    }
-                }
+                $spaces += $sp
             }
-            $spaces += $sp
+            $shortcut = if ($l.shortcut) { $l.shortcut } else { "" }
+            $script:savedLayouts[$l.name] = @{ Spaces = $spaces; Shortcut = $shortcut }
+        } catch {
+            Write-Warning "Layout '$($l.name)' corrompido — pulando: $($_.Exception.Message)"
         }
-        $shortcut = if ($l.shortcut) { $l.shortcut } else { "" }
-        $script:savedLayouts[$l.name] = @{ Spaces = $spaces; Shortcut = $shortcut }
     }
 }
 
@@ -1652,35 +1671,40 @@ function Apply-LayoutByName($name) {
 $hotkeyTimer = New-Object System.Windows.Forms.Timer
 $hotkeyTimer.Interval = 200
 $hotkeyTimer.add_Tick({
-    # --- Pruning: remover layers de janelas/processos encerrados ---
-    $pruned = $false
-    $runningProcs = $null  # lazy: so carregado para layers de processo
-    foreach ($space in $script:currentSpaces) {
-        $toRemove = @()
-        foreach ($layer in $space.Layers) {
-            if ($layer.Locked -eq $true) {
-                # Locked: prune apenas se o HWND especifico foi destruido
-                $gone = -not [WinAPI]::IsWindow($layer.Handle)
-            } elseif ($layer.Process) {
-                # Baseado em processo: prune se o processo nao esta mais rodando
-                if ($null -eq $runningProcs) {
-                    $runningProcs = @([System.Diagnostics.Process]::GetProcesses() | ForEach-Object { $_.ProcessName })
+    # --- Pruning: rodar a cada 10 ticks (~2s) para evitar enumerar todos os
+    #     processos do sistema 5x/segundo. Hotkeys continuam a 200ms.
+    $script:pruneTickCounter++
+    if ($script:pruneTickCounter -ge 10) {
+        $script:pruneTickCounter = 0
+        $pruned = $false
+        $runningProcs = $null  # lazy: so carregado para layers de processo
+        foreach ($space in $script:currentSpaces) {
+            $toRemove = @()
+            foreach ($layer in $space.Layers) {
+                if ($layer.Locked -eq $true) {
+                    # Locked: prune apenas se o HWND especifico foi destruido
+                    $gone = -not [WinAPI]::IsWindow($layer.Handle)
+                } elseif ($layer.Process) {
+                    # Baseado em processo: prune se o processo nao esta mais rodando
+                    if ($null -eq $runningProcs) {
+                        $runningProcs = @([System.Diagnostics.Process]::GetProcesses() | ForEach-Object { $_.ProcessName })
+                    }
+                    $gone = $runningProcs -notcontains $layer.Process
+                } else {
+                    # Legado (sem process): verificar HWND
+                    $gone = -not [WinAPI]::IsWindow($layer.Handle)
                 }
-                $gone = $runningProcs -notcontains $layer.Process
-            } else {
-                # Legado (sem process): verificar HWND
-                $gone = -not [WinAPI]::IsWindow($layer.Handle)
+                if ($gone) { $toRemove += $layer }
             }
-            if ($gone) { $toRemove += $layer }
+            foreach ($r in $toRemove) {
+                $space.Layers.Remove($r)
+                $pruned = $true
+            }
         }
-        foreach ($r in $toRemove) {
-            $space.Layers.Remove($r)
-            $pruned = $true
+        if ($pruned) {
+            Build-SpacePanel
+            $pnlPreview.Invalidate()
         }
-    }
-    if ($pruned) {
-        Build-SpacePanel
-        $pnlPreview.Invalidate()
     }
 
     if ($script:hotkeyCooldown) { return }
