@@ -642,7 +642,7 @@ $btnMonNext.add_Click({
 
 $pnlPreview = New-Object System.Windows.Forms.Panel
 $pnlPreview.Location    = New-Object System.Drawing.Point(220, 84)
-$pnlPreview.Size        = New-Object System.Drawing.Size(554, 386)
+$pnlPreview.Size        = New-Object System.Drawing.Size($_previewW, $_previewH)
 $pnlPreview.BackColor   = $cBg
 $pnlPreview.BorderStyle = "None"
 $form.Controls.Add($pnlPreview)
@@ -2249,13 +2249,17 @@ function Sync-Layout {
     $btnAddSpace.Left = $rightX
     $btnAddSpace.Top  = $ch - 129
 
-    # Canvas fixo: sepV2 ancorado na borda direita do preview (nao muda com resize)
-    $fixedSepV2 = 220 + $script:previewW + 8
-    $sepV2.Left   = $fixedSepV2
+    # Canvas fixo: centralizado entre sepV1 (x=210) e pnlSpaces
+    $midLeft  = 211
+    $midRight = $cw - 328
+    $prevX = [Math]::Max($midLeft + 4, [int](($midLeft + $midRight - $script:previewW) / 2))
+    $prevY = [Math]::Max(84, [int](84 + ((($ch - 95) - 84 - $script:previewH) / 2)))
+    $pnlPreview.Left = $prevX
+    $pnlPreview.Top  = $prevY
+    $sepV2.Left   = $prevX + $script:previewW + 8
     $sepV2.Height = $ch - 160
     $sepV1.Height = $ch - 160
-    # lblRes alinhado a direita do preview
-    $lblRes.Left  = $fixedSepV2 - 142
+    $lblRes.Left  = $sepV2.Left - 142
 
     # Barra inferior
     $sepBottom.Top      = $ch - 95
