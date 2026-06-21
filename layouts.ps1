@@ -331,8 +331,9 @@ $form.ForeColor       = $cText
 $form.Font            = New-Object System.Drawing.Font("Consolas", 8, [System.Drawing.FontStyle]::Bold)
 $form.KeyPreview      = $true
 $form.MinimumSize     = New-Object System.Drawing.Size(1080, 575)
-$form.DoubleBuffered  = $true
-# ResizeRedraw faz o Windows apagar o fundo ao redimensionar (evita rastro)
+# DoubleBuffered e ResizeRedraw sao propriedade/metodo protected — acesso via reflection
+$setProp = [System.Windows.Forms.Control].GetProperty('DoubleBuffered', [System.Reflection.BindingFlags]'NonPublic,Instance')
+$setProp.SetValue($form, $true, $null)
 $setStyle = [System.Windows.Forms.Control].GetMethod('SetStyle', [System.Reflection.BindingFlags]'NonPublic,Instance')
 $setStyle.Invoke($form, @([System.Windows.Forms.ControlStyles]::ResizeRedraw, $true))
 
@@ -636,13 +637,13 @@ $lblSpaces = New-Object System.Windows.Forms.Label
 $lblSpaces.Text      = "SPACES LAYERS"
 $lblSpaces.Font      = New-Object System.Drawing.Font("Consolas", 8, [System.Drawing.FontStyle]::Bold)
 $lblSpaces.ForeColor = $cAccent
-$lblSpaces.Location  = New-Object System.Drawing.Point(792, 70)
-$lblSpaces.Size      = New-Object System.Drawing.Size(280, 14)
+$lblSpaces.Location  = New-Object System.Drawing.Point(752, 70)
+$lblSpaces.Size      = New-Object System.Drawing.Size(310, 14)
 $form.Controls.Add($lblSpaces)
 
 $pnlSpaces = New-Object System.Windows.Forms.Panel
-$pnlSpaces.Location            = New-Object System.Drawing.Point(792, 84)
-$pnlSpaces.Size                = New-Object System.Drawing.Size(270, 358)
+$pnlSpaces.Location            = New-Object System.Drawing.Point(752, 84)
+$pnlSpaces.Size                = New-Object System.Drawing.Size(310, 358)
 $pnlSpaces.BackColor           = $cBg
 $pnlSpaces.AutoScroll          = $true
 $pnlSpaces.AutoScrollMinSize   = New-Object System.Drawing.Size(1, 1)
@@ -650,8 +651,8 @@ $form.Controls.Add($pnlSpaces)
 
 $btnAddSpace = New-Object System.Windows.Forms.Button
 $btnAddSpace.Text      = "+ ADD SPACE"
-$btnAddSpace.Location  = New-Object System.Drawing.Point(792, 446)
-$btnAddSpace.Size      = New-Object System.Drawing.Size(270, 28)
+$btnAddSpace.Location  = New-Object System.Drawing.Point(752, 446)
+$btnAddSpace.Size      = New-Object System.Drawing.Size(310, 28)
 $btnAddSpace.FlatStyle = "Flat"
 $btnAddSpace.BackColor = $cBg
 $btnAddSpace.ForeColor = $cGreen
@@ -2212,7 +2213,7 @@ function Sync-Layout {
     $sep.Width         = $cw - 6
 
     # Painel direito: mantém margem de 18px à direita
-    $rightX = $cw - 288
+    $rightX = $cw - 328
     $pnlSpaces.Left   = $rightX
     $pnlSpaces.Height = $ch - 217
     $lblSpaces.Left   = $rightX
