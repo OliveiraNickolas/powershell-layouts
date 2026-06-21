@@ -329,6 +329,7 @@ $form.MaximizeBox     = $false
 $form.BackColor       = $cBg
 $form.ForeColor       = $cText
 $form.Font            = New-Object System.Drawing.Font("Consolas", 8, [System.Drawing.FontStyle]::Bold)
+$form.KeyPreview      = $true
 
 # Borda externa cyan (2px) via Paint no form
 $form.add_Paint({
@@ -822,7 +823,18 @@ $pnlPreview.add_Paint({
 $pnlPreview.add_MouseDoubleClick({
     param($s, $e)
     $script:highlightedSpaceIndex = -1
+    Build-SpacePanel
     $pnlPreview.Invalidate()
+})
+
+$form.add_KeyDown({
+    param($s, $e)
+    if ($e.KeyCode -eq [System.Windows.Forms.Keys]::Escape -and $script:highlightedSpaceIndex -ge 0) {
+        $script:highlightedSpaceIndex = -1
+        Build-SpacePanel
+        $pnlPreview.Invalidate()
+        $e.Handled = $true
+    }
 })
 
 # -- Drag-resize: arrastar borda de um space para redimensionar
@@ -1000,10 +1012,11 @@ function Build-SpacePanel {
         $strokeColor = $script:spaceColors[$ci].Stroke
 
         # Indicador de cor + Nome + botoes
+        $isHighlighted = ($i -eq $script:highlightedSpaceIndex)
         $pnlHeader = New-Object System.Windows.Forms.Panel
         $pnlHeader.Location  = New-Object System.Drawing.Point(2, $y)
         $pnlHeader.Size      = New-Object System.Drawing.Size(250, 26)
-        $pnlHeader.BackColor = $cBg
+        $pnlHeader.BackColor = if ($isHighlighted) { [System.Drawing.Color]::FromArgb(40, 20, 55) } else { $cBg }
         $pnlHeader.Cursor    = [System.Windows.Forms.Cursors]::Hand
         $pnlHeader.Tag       = $i
         # Click no header destaca o space no canvas
@@ -1011,6 +1024,7 @@ function Build-SpacePanel {
             param($s, $e)
             if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
                 $script:highlightedSpaceIndex = $s.Tag
+                Build-SpacePanel
                 $pnlPreview.Invalidate()
             }
         })
@@ -1025,7 +1039,7 @@ function Build-SpacePanel {
         # Label clicavel para renomear inline
         $lblName = New-Object System.Windows.Forms.Label
         $lblName.Text      = $space.Name.ToUpper()
-        $lblName.ForeColor = $cText
+        $lblName.ForeColor = if ($isHighlighted) { $cAccent } else { $cText }
         $lblName.Font      = New-Object System.Drawing.Font("Consolas", 10, [System.Drawing.FontStyle]::Bold)
         $lblName.Location  = New-Object System.Drawing.Point(10, 4)
         $lblName.Size      = New-Object System.Drawing.Size(130, 18)
