@@ -477,7 +477,6 @@ $lstSaved.ForeColor   = $cText
 $lstSaved.BorderStyle = "None"
 $lstSaved.Font        = New-Object System.Drawing.Font("Consolas", 8, [System.Drawing.FontStyle]::Bold)
 $form.Controls.Add($lstSaved)
-$lstSaved.Anchor      = $ancLTB
 
 $btnSavedUp = New-Object System.Windows.Forms.Button
 $btnSavedUp.Text      = "p"   # Wingdings 3: seta cima
@@ -490,7 +489,6 @@ $btnSavedUp.ForeColor = $cAccent
 $btnSavedUp.FlatAppearance.BorderColor = $cBorder
 $btnSavedUp.FlatAppearance.BorderSize  = 1
 $form.Controls.Add($btnSavedUp)
-$btnSavedUp.Anchor = $ancLB
 
 $btnSavedDown = New-Object System.Windows.Forms.Button
 $btnSavedDown.Text      = "q"   # Wingdings 3: seta baixo
@@ -503,7 +501,6 @@ $btnSavedDown.ForeColor = $cAccent
 $btnSavedDown.FlatAppearance.BorderColor = $cBorder
 $btnSavedDown.FlatAppearance.BorderSize  = 1
 $form.Controls.Add($btnSavedDown)
-$btnSavedDown.Anchor = $ancLB
 
 $btnSavedRename = New-Object System.Windows.Forms.Button
 $btnSavedRename.Text      = "RENOMEAR"
@@ -516,7 +513,6 @@ $btnSavedRename.FlatAppearance.BorderColor = $cBorder
 $btnSavedRename.FlatAppearance.BorderSize  = 1
 $btnSavedRename.Font      = New-Object System.Drawing.Font("Consolas", 8, [System.Drawing.FontStyle]::Bold)
 $form.Controls.Add($btnSavedRename)
-$btnSavedRename.Anchor = $ancLB
 
 $btnDeleteSaved = New-Object System.Windows.Forms.Button
 $btnDeleteSaved.Text      = "EXCLUIR"
@@ -529,7 +525,6 @@ $btnDeleteSaved.FlatAppearance.BorderColor = $cRed
 $btnDeleteSaved.FlatAppearance.BorderSize  = 1
 $btnDeleteSaved.Font      = New-Object System.Drawing.Font("Consolas", 8, [System.Drawing.FontStyle]::Bold)
 $form.Controls.Add($btnDeleteSaved)
-$btnDeleteSaved.Anchor = $ancLB
 
 $btnSetShortcut = New-Object System.Windows.Forms.Button
 $btnSetShortcut.Text      = "ATALHO"
@@ -542,7 +537,6 @@ $btnSetShortcut.FlatAppearance.BorderColor = $cAccent
 $btnSetShortcut.FlatAppearance.BorderSize  = 1
 $btnSetShortcut.Font      = New-Object System.Drawing.Font("Consolas", 8, [System.Drawing.FontStyle]::Bold)
 $form.Controls.Add($btnSetShortcut)
-$btnSetShortcut.Anchor = $ancLB
 
 # ============================================================
 #  PRE-VISUALIZACAO - centro: x=212..782 (w=570)
@@ -637,7 +631,6 @@ $pnlPreview.Size        = New-Object System.Drawing.Size(554, 386)
 $pnlPreview.BackColor   = $cBg
 $pnlPreview.BorderStyle = "None"
 $form.Controls.Add($pnlPreview)
-$pnlPreview.Anchor = $ancTLRB
 
 # ============================================================
 #  SPACES / LAYERS - direita: x=784..1072 (w=288)
@@ -650,7 +643,6 @@ $lblSpaces.ForeColor = $cAccent
 $lblSpaces.Location  = New-Object System.Drawing.Point(792, 70)
 $lblSpaces.Size      = New-Object System.Drawing.Size(280, 14)
 $form.Controls.Add($lblSpaces)
-$lblSpaces.Anchor = $ancTR
 
 $pnlSpaces = New-Object System.Windows.Forms.Panel
 $pnlSpaces.Location            = New-Object System.Drawing.Point(792, 84)
@@ -659,7 +651,6 @@ $pnlSpaces.BackColor           = $cBg
 $pnlSpaces.AutoScroll          = $true
 $pnlSpaces.AutoScrollMinSize   = New-Object System.Drawing.Size(1, 1)
 $form.Controls.Add($pnlSpaces)
-$pnlSpaces.Anchor = $ancTRB
 
 $btnAddSpace = New-Object System.Windows.Forms.Button
 $btnAddSpace.Text      = "+ ADD SPACE"
@@ -672,7 +663,6 @@ $btnAddSpace.FlatAppearance.BorderColor = $cGreen
 $btnAddSpace.FlatAppearance.BorderSize  = 1
 $btnAddSpace.Font      = New-Object System.Drawing.Font("Consolas", 8, [System.Drawing.FontStyle]::Bold)
 $form.Controls.Add($btnAddSpace)
-$btnAddSpace.Anchor = $ancBR
 
 # ============================================================
 #  BARRA DE ACOES (baixo)
@@ -683,7 +673,6 @@ $sepBottom.Location  = New-Object System.Drawing.Point(3, 480)
 $sepBottom.Size      = New-Object System.Drawing.Size(1074, 1)
 $sepBottom.BackColor = $cBorder
 $form.Controls.Add($sepBottom)
-$sepBottom.Anchor = $ancLRB
 
 $btnApply = New-Object System.Windows.Forms.Button
 $btnApply.Text      = "APLICAR LAYOUT"
@@ -695,7 +684,6 @@ $btnApply.ForeColor = [System.Drawing.Color]::White
 $btnApply.FlatAppearance.BorderSize = 0
 $btnApply.Font      = New-Object System.Drawing.Font("Consolas", 9, [System.Drawing.FontStyle]::Bold)
 $form.Controls.Add($btnApply)
-$btnApply.Anchor = $ancLB
 
 $btnSaveCurrent = New-Object System.Windows.Forms.Button
 $btnSaveCurrent.Text      = "SALVAR NOVO LAYOUT"
@@ -708,7 +696,6 @@ $btnSaveCurrent.FlatAppearance.BorderColor = $cAccent
 $btnSaveCurrent.FlatAppearance.BorderSize  = 1
 $btnSaveCurrent.Font      = New-Object System.Drawing.Font("Consolas", 8, [System.Drawing.FontStyle]::Bold)
 $form.Controls.Add($btnSaveCurrent)
-$btnSaveCurrent.Anchor = $ancLB
 
 # -- Botao salvar sobrescrevendo (disquete Wingdings "<")
 $btnOverwrite = New-Object System.Windows.Forms.Button
@@ -722,7 +709,6 @@ $btnOverwrite.FlatAppearance.BorderColor = $cAccent
 $btnOverwrite.FlatAppearance.BorderSize  = 1
 $btnOverwrite.Font      = New-Object System.Drawing.Font("Wingdings", 16)
 $form.Controls.Add($btnOverwrite)
-$btnOverwrite.Anchor = $ancLB
 
 # -- Status
 $lblStatus = New-Object System.Windows.Forms.Label
@@ -732,39 +718,21 @@ $lblStatus.Font      = New-Object System.Drawing.Font("Consolas", 8, [System.Dra
 $lblStatus.Location  = New-Object System.Drawing.Point(8, 520)
 $lblStatus.Size      = New-Object System.Drawing.Size(1056, 14)
 $form.Controls.Add($lblStatus)
-$lblStatus.Anchor = $ancLRB
 
-# Grip de resize no canto inferior direito
+# Grip de resize — usa WM_NCLBUTTONDOWN (mesmo mecanismo do drag da titlebar)
 $grip = New-Object System.Windows.Forms.Panel
-$grip.Size      = New-Object System.Drawing.Size(10, 10)
-$grip.Location  = New-Object System.Drawing.Point(1070, 565)
-$grip.BackColor = $cBorder
+$grip.Size      = New-Object System.Drawing.Size(12, 12)
+$grip.Location  = New-Object System.Drawing.Point(1065, 560)
+$grip.BackColor = $cBg
 $grip.Cursor    = [System.Windows.Forms.Cursors]::SizeNWSE
-$grip.Anchor    = $ancBR
 $form.Controls.Add($grip)
-$script:gripDrag = $false
-$script:gripStartMouse = [System.Drawing.Point]::Empty
-$script:gripStartSize  = [System.Drawing.Size]::Empty
 $grip.add_MouseDown({
     param($s, $e)
     if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
-        $script:gripDrag       = $true
-        $script:gripStartMouse = [System.Windows.Forms.Control]::MousePosition
-        $script:gripStartSize  = $form.Size
-        $grip.Capture = $true
+        [SnapAPI]::ReleaseCapture()
+        [SnapAPI]::SendMessage($form.Handle, 0xA1, 0x11, 0) | Out-Null  # WM_NCLBUTTONDOWN, HTBOTTOMRIGHT
     }
 })
-$grip.add_MouseMove({
-    if (-not $script:gripDrag) { return }
-    $cur = [System.Windows.Forms.Control]::MousePosition
-    $dx  = $cur.X - $script:gripStartMouse.X
-    $dy  = $cur.Y - $script:gripStartMouse.Y
-    $form.Size = New-Object System.Drawing.Size(
-        [Math]::Max($form.MinimumSize.Width,  $script:gripStartSize.Width  + $dx),
-        [Math]::Max($form.MinimumSize.Height, $script:gripStartSize.Height + $dy)
-    )
-})
-$grip.add_MouseUp({ $script:gripDrag = $false; $grip.Capture = $false })
 
 # ============================================================
 #  FUNCOES DE REFRESH
@@ -2235,6 +2203,26 @@ $hotkeyTimer.Start()
 Load-AllLayouts
 Refresh-SavedList
 Register-Hotkeys
+
+# Anchors aplicados no Load para garantir que ClientSize ja esta correto
+$form.add_Load({
+    $pnlPreview.Anchor   = $ancTLRB
+    $pnlSpaces.Anchor    = $ancTRB
+    $lblSpaces.Anchor    = $ancTR
+    $btnAddSpace.Anchor  = $ancBR
+    $sepBottom.Anchor    = $ancLRB
+    $btnApply.Anchor     = $ancLB
+    $btnSaveCurrent.Anchor = $ancLB
+    $btnOverwrite.Anchor = $ancLB
+    $lblStatus.Anchor    = $ancLRB
+    $lstSaved.Anchor     = $ancLTB
+    $btnSavedUp.Anchor   = $ancLB
+    $btnSavedDown.Anchor = $ancLB
+    $btnSavedRename.Anchor = $ancLB
+    $btnDeleteSaved.Anchor = $ancLB
+    $btnSetShortcut.Anchor = $ancLB
+    $grip.Anchor         = $ancBR
+})
 
 [void]$form.ShowDialog()
 $hotkeyTimer.Stop()
