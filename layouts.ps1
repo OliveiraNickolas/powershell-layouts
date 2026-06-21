@@ -1374,11 +1374,53 @@ function Select-Layout($name, $source) {
 }
 
 $btnAddSpace.add_Click({
+    $targetMonitor = $script:previewMonitor
+    if ($script:monitors.Count -gt 1) {
+        $choices = @()
+        for ($m = 0; $m -lt $script:monitors.Count; $m++) { $choices += "Tela $($m + 1)" }
+        $dlg = New-Object System.Windows.Forms.Form
+        $dlg.Text            = "Adicionar Space"
+        $dlg.Size            = New-Object System.Drawing.Size(260, 130 + $choices.Count * 32)
+        $dlg.StartPosition   = "CenterParent"
+        $dlg.FormBorderStyle = "FixedToolWindow"
+        $dlg.BackColor       = $cBg
+        $dlg.ForeColor       = $cText
+        $lbl = New-Object System.Windows.Forms.Label
+        $lbl.Text     = "Em qual tela?"
+        $lbl.Location = New-Object System.Drawing.Point(10, 12)
+        $lbl.Size     = New-Object System.Drawing.Size(230, 18)
+        $lbl.Font     = New-Object System.Drawing.Font("Consolas", 9, [System.Drawing.FontStyle]::Bold)
+        $dlg.Controls.Add($lbl)
+        $by = 36
+        foreach ($label in $choices) {
+            $btn = New-Object System.Windows.Forms.Button
+            $btn.Text         = $label
+            $btn.Location     = New-Object System.Drawing.Point(10, $by)
+            $btn.Size         = New-Object System.Drawing.Size(225, 28)
+            $btn.FlatStyle    = "Flat"
+            $btn.BackColor    = $cSurface
+            $btn.ForeColor    = $cAccent
+            $btn.FlatAppearance.BorderColor = $cAccent
+            $btn.FlatAppearance.BorderSize  = 1
+            $btn.Font         = New-Object System.Drawing.Font("Consolas", 9, [System.Drawing.FontStyle]::Bold)
+            $btn.Tag          = $choices.IndexOf($label)
+            $btn.add_Click({
+                param($s, $e)
+                $script:_addSpaceMonitor = $s.Tag
+                $dlg.DialogResult = [System.Windows.Forms.DialogResult]::OK
+                $dlg.Close()
+            })
+            $dlg.Controls.Add($btn)
+            $by += 32
+        }
+        if ($dlg.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { return }
+        $targetMonitor = $script:_addSpaceMonitor
+    }
     $n = $script:currentSpaces.Count + 1
     $script:currentSpaces += @{
         Name     = "Space $n"
         Zone     = @(0, 0, 100, 100)
-        Monitor  = $script:previewMonitor
+        Monitor  = $targetMonitor
         Layers   = [System.Collections.ArrayList]::new()
         Shortcut = ""
     }
