@@ -331,14 +331,6 @@ $form.ForeColor       = $cText
 $form.Font            = New-Object System.Drawing.Font("Consolas", 8, [System.Drawing.FontStyle]::Bold)
 $form.KeyPreview      = $true
 $form.MinimumSize     = New-Object System.Drawing.Size(1080, 575)
-# Constantes de Anchor para redimensionamento
-$ancTLRB = [System.Windows.Forms.AnchorStyles]15   # Top+Left+Right+Bottom
-$ancTRB  = [System.Windows.Forms.AnchorStyles]11   # Top+Right+Bottom
-$ancTR   = [System.Windows.Forms.AnchorStyles]9    # Top+Right
-$ancBR   = [System.Windows.Forms.AnchorStyles]10   # Bottom+Right
-$ancLRB  = [System.Windows.Forms.AnchorStyles]14   # Left+Right+Bottom
-$ancLB   = [System.Windows.Forms.AnchorStyles]6    # Left+Bottom
-$ancLTB  = [System.Windows.Forms.AnchorStyles]7    # Left+Top+Bottom
 
 # Borda externa cyan (2px) via Paint no form
 $form.add_Paint({
@@ -2204,24 +2196,53 @@ Load-AllLayouts
 Refresh-SavedList
 Register-Hotkeys
 
-# Anchors aplicados no Load para garantir que ClientSize ja esta correto
-$form.add_Load({
-    $pnlPreview.Anchor   = $ancTLRB
-    $pnlSpaces.Anchor    = $ancTRB
-    $lblSpaces.Anchor    = $ancTR
-    $btnAddSpace.Anchor  = $ancBR
-    $sepBottom.Anchor    = $ancLRB
-    $btnApply.Anchor     = $ancLB
-    $btnSaveCurrent.Anchor = $ancLB
-    $btnOverwrite.Anchor = $ancLB
-    $lblStatus.Anchor    = $ancLRB
-    $lstSaved.Anchor     = $ancLTB
-    $btnSavedUp.Anchor   = $ancLB
-    $btnSavedDown.Anchor = $ancLB
-    $btnSavedRename.Anchor = $ancLB
-    $btnDeleteSaved.Anchor = $ancLB
-    $btnSetShortcut.Anchor = $ancLB
-    $grip.Anchor         = $ancBR
+$form.add_Resize({
+    $cw = $form.ClientSize.Width
+    $ch = $form.ClientSize.Height
+    if ($cw -lt 100 -or $ch -lt 100) { return }
+
+    # Titlebar e botoes de fechar/minimizar
+    $pnlTitleBar.Width = $cw - 6
+    $btnMinimize.Left  = $pnlTitleBar.Width - 52
+    $btnClose.Left     = $pnlTitleBar.Width - 28
+
+    # Painel direito: mantém margem de 18px à direita
+    $rightX = $cw - 288              # 270 (pnlSpaces) + 18 (margem)
+    $pnlSpaces.Left   = $rightX
+    $pnlSpaces.Height = $ch - 217    # top=84, margem inferior=133
+    $lblSpaces.Left   = $rightX
+    $btnAddSpace.Left = $rightX
+    $btnAddSpace.Top  = $ch - 129    # mantém distância ao fundo
+
+    # Separador vertical direito e preview crescem juntos
+    $sepV2.Left   = $rightX - 10
+    $sepV2.Height = $ch - 160        # top=65, vai até sepBottom (y=ch-95)
+    $sepV1.Height = $ch - 160
+    $pnlPreview.Width  = $sepV2.Left - 228   # Left=220, gap=8
+    $pnlPreview.Height = $ch - 189           # top=84, margem=105
+
+    # Barra inferior
+    $sepBottom.Top   = $ch - 95
+    $sepBottom.Width = $cw - 6
+    $btnApply.Top    = $ch - 92
+    $btnSaveCurrent.Top = $ch - 92
+    $btnOverwrite.Top   = $ch - 92
+    $btnDeleteSaved.Top = $ch - 92
+    $btnSetShortcut.Top = $ch - 92
+    $lblStatus.Top   = $ch - 55
+    $lblStatus.Width = $cw - 24
+
+    # Painel esquerdo (lista de salvos e botoes inferiores)
+    $lstSaved.Height    = $ch - 285
+    $btnSavedUp.Top     = $ch - 139
+    $btnSavedDown.Top   = $ch - 139
+    $btnSavedRename.Top = $ch - 139
+
+    # Grip de resize
+    $grip.Left = $cw - 15
+    $grip.Top  = $ch - 15
+
+    $pnlPreview.Invalidate()
 })
 
 [void]$form.ShowDialog()
