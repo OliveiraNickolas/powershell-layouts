@@ -2196,9 +2196,8 @@ Load-AllLayouts
 Refresh-SavedList
 Register-Hotkeys
 
-$form.add_Resize({
-    $cw = $form.ClientSize.Width
-    $ch = $form.ClientSize.Height
+function Sync-Layout {
+    param([int]$cw, [int]$ch)
     if ($cw -lt 100 -or $ch -lt 100) { return }
 
     # Titlebar e botoes de fechar/minimizar
@@ -2207,32 +2206,32 @@ $form.add_Resize({
     $btnClose.Left     = $pnlTitleBar.Width - 28
 
     # Painel direito: mantém margem de 18px à direita
-    $rightX = $cw - 288              # 270 (pnlSpaces) + 18 (margem)
+    $rightX = $cw - 288
     $pnlSpaces.Left   = $rightX
-    $pnlSpaces.Height = $ch - 217    # top=84, margem inferior=133
+    $pnlSpaces.Height = $ch - 217
     $lblSpaces.Left   = $rightX
     $btnAddSpace.Left = $rightX
-    $btnAddSpace.Top  = $ch - 129    # mantém distância ao fundo
+    $btnAddSpace.Top  = $ch - 129
 
     # Separador vertical direito e preview crescem juntos
-    $sepV2.Left   = $rightX - 10
-    $sepV2.Height = $ch - 160        # top=65, vai até sepBottom (y=ch-95)
-    $sepV1.Height = $ch - 160
-    $pnlPreview.Width  = $sepV2.Left - 228   # Left=220, gap=8
-    $pnlPreview.Height = $ch - 189           # top=84, margem=105
+    $sepV2.Left        = $rightX - 10
+    $sepV2.Height      = $ch - 160
+    $sepV1.Height      = $ch - 160
+    $pnlPreview.Width  = $sepV2.Left - 228
+    $pnlPreview.Height = $ch - 189
 
     # Barra inferior
-    $sepBottom.Top   = $ch - 95
-    $sepBottom.Width = $cw - 6
-    $btnApply.Top    = $ch - 92
+    $sepBottom.Top      = $ch - 95
+    $sepBottom.Width    = $cw - 6
+    $btnApply.Top       = $ch - 92
     $btnSaveCurrent.Top = $ch - 92
     $btnOverwrite.Top   = $ch - 92
     $btnDeleteSaved.Top = $ch - 92
     $btnSetShortcut.Top = $ch - 92
-    $lblStatus.Top   = $ch - 55
-    $lblStatus.Width = $cw - 24
+    $lblStatus.Top      = $ch - 55
+    $lblStatus.Width    = $cw - 24
 
-    # Painel esquerdo (lista de salvos e botoes inferiores)
+    # Painel esquerdo
     $lstSaved.Height    = $ch - 285
     $btnSavedUp.Top     = $ch - 139
     $btnSavedDown.Top   = $ch - 139
@@ -2243,7 +2242,13 @@ $form.add_Resize({
     $grip.Top  = $ch - 15
 
     $pnlPreview.Invalidate()
-})
+}
+
+# Shown: dispara uma vez, ja com o tamanho final correto
+$form.add_Shown({ Sync-Layout $form.ClientSize.Width $form.ClientSize.Height })
+
+# Resize: dispara ao usuario redimensionar
+$form.add_Resize({ Sync-Layout $form.ClientSize.Width $form.ClientSize.Height })
 
 [void]$form.ShowDialog()
 $hotkeyTimer.Stop()
