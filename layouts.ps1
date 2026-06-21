@@ -508,8 +508,8 @@ $btnSavedUp.Location  = New-Object System.Drawing.Point(8, 436)
 $btnSavedUp.Size      = New-Object System.Drawing.Size(28, 26)
 $btnSavedUp.FlatStyle = "Flat"
 $btnSavedUp.BackColor = $cBg
-$btnSavedUp.ForeColor = $cAccent
-$btnSavedUp.FlatAppearance.BorderColor = $cBorder
+$btnSavedUp.ForeColor = $cGreen
+$btnSavedUp.FlatAppearance.BorderColor = $cGreen
 $btnSavedUp.FlatAppearance.BorderSize  = 1
 $form.Controls.Add($btnSavedUp)
 
@@ -520,8 +520,8 @@ $btnSavedDown.Location  = New-Object System.Drawing.Point(40, 436)
 $btnSavedDown.Size      = New-Object System.Drawing.Size(28, 26)
 $btnSavedDown.FlatStyle = "Flat"
 $btnSavedDown.BackColor = $cBg
-$btnSavedDown.ForeColor = $cAccent
-$btnSavedDown.FlatAppearance.BorderColor = $cBorder
+$btnSavedDown.ForeColor = $cGreen
+$btnSavedDown.FlatAppearance.BorderColor = $cGreen
 $btnSavedDown.FlatAppearance.BorderSize  = 1
 $form.Controls.Add($btnSavedDown)
 
@@ -531,8 +531,8 @@ $btnSavedRename.Location  = New-Object System.Drawing.Point(72, 436)
 $btnSavedRename.Size      = New-Object System.Drawing.Size(130, 26)
 $btnSavedRename.FlatStyle = "Flat"
 $btnSavedRename.BackColor = $cBg
-$btnSavedRename.ForeColor = $cAccent
-$btnSavedRename.FlatAppearance.BorderColor = $cBorder
+$btnSavedRename.ForeColor = $cGreen
+$btnSavedRename.FlatAppearance.BorderColor = $cGreen
 $btnSavedRename.FlatAppearance.BorderSize  = 1
 $btnSavedRename.Font      = New-Object System.Drawing.Font("Consolas", 8, [System.Drawing.FontStyle]::Bold)
 $form.Controls.Add($btnSavedRename)
@@ -671,9 +671,104 @@ $pnlSpaces = New-Object System.Windows.Forms.Panel
 $pnlSpaces.Location            = New-Object System.Drawing.Point(752, 84)
 $pnlSpaces.Size                = New-Object System.Drawing.Size(310, 358)
 $pnlSpaces.BackColor           = $cBg
-$pnlSpaces.AutoScroll          = $true
-$pnlSpaces.AutoScrollMinSize   = New-Object System.Drawing.Size(1, 1)
 $form.Controls.Add($pnlSpaces)
+
+# Conteudo rolavel (sem scrollbar nativa - usamos uma custom)
+$pnlSpacesContent = New-Object System.Windows.Forms.Panel
+$pnlSpacesContent.Location  = New-Object System.Drawing.Point(0, 0)
+$pnlSpacesContent.Size      = New-Object System.Drawing.Size(310, 1)
+$pnlSpacesContent.BackColor = $cBg
+$pnlSpaces.Controls.Add($pnlSpacesContent)
+
+# Thumb da scrollbar custom
+$scrollThumb = New-Object System.Windows.Forms.Panel
+$scrollThumb.BackColor = $cBorder
+$scrollThumb.Size      = New-Object System.Drawing.Size(8, 40)
+$scrollThumb.Visible   = $false
+$scrollThumb.Cursor    = [System.Windows.Forms.Cursors]::Hand
+$pnlSpaces.Controls.Add($scrollThumb)
+
+# Estado da scrollbar
+$script:spaceScroll    = 0
+$script:spaceContentH  = 0
+$script:spaceMaxScroll = 0
+$script:thumbDrag      = $false
+
+# Posiciona conteudo e thumb a partir de $script:spaceScroll
+function Update-SpaceScroll {
+    $vp  = $pnlSpaces.Height
+    $cth = $script:spaceContentH
+    $sbW = 8
+    $sbX = $pnlSpaces.Width - $sbW - 2
+    $pnlSpacesContent.Width  = $pnlSpaces.Width
+    $pnlSpacesContent.Height = [Math]::Max($cth, $vp)
+    if ($cth -le $vp) {
+        $script:spaceScroll    = 0
+        $script:spaceMaxScroll = 0
+        $pnlSpacesContent.Top  = 0
+        $scrollThumb.Visible   = $false
+        return
+    }
+    $script:spaceMaxScroll = $cth - $vp
+    if ($script:spaceScroll -lt 0) { $script:spaceScroll = 0 }
+    if ($script:spaceScroll -gt $script:spaceMaxScroll) { $script:spaceScroll = $script:spaceMaxScroll }
+    $pnlSpacesContent.Top = - $script:spaceScroll
+    $trackH = $vp - 4
+    $thumbH = [Math]::Max(24, [int]($trackH * $vp / $cth))
+    $thumbY = 2 + [int](($trackH - $thumbH) * $script:spaceScroll / $script:spaceMaxScroll)
+    $scrollThumb.Size     = New-Object System.Drawing.Size($sbW, $thumbH)
+    $scrollThumb.Location  = New-Object System.Drawing.Point($sbX, $thumbY)
+    $scrollThumb.Visible  = $true
+    $scrollThumb.BringToFront()
+}
+
+# Handler de roda do mouse (compartilhado por todos os controles do painel)
+$script:spaceWheelHandler = {
+    param($s, $e)
+    if ($script:spaceMaxScroll -le 0) { return }
+    $script:spaceScroll -= [int]($e.Delta / 120) * 42
+    Update-SpaceScroll
+}
+
+# Anexa o wheel handler recursivamente aos filhos do conteudo
+function Register-SpaceWheel($ctrl) {
+    foreach ($c in $ctrl.Controls) {
+        $c.add_MouseWheel($script:spaceWheelHandler)
+        if ($c.Controls.Count -gt 0) { Register-SpaceWheel $c }
+    }
+}
+
+$pnlSpaces.add_MouseWheel($script:spaceWheelHandler)
+$pnlSpacesContent.add_MouseWheel($script:spaceWheelHandler)
+
+# Drag do thumb
+$scrollThumb.add_MouseDown({
+    param($s, $e)
+    $script:thumbDrag            = $true
+    $script:thumbDragStartY      = [System.Windows.Forms.Cursor]::Position.Y
+    $script:thumbDragStartScroll = $script:spaceScroll
+    $scrollThumb.Capture         = $true
+    $scrollThumb.BackColor       = $cAccent
+})
+$scrollThumb.add_MouseMove({
+    param($s, $e)
+    if (-not $script:thumbDrag) { return }
+    $vp     = $pnlSpaces.Height
+    $trackH = $vp - 4
+    $denom  = $trackH - $scrollThumb.Height
+    if ($denom -le 0) { return }
+    $dy = [System.Windows.Forms.Cursor]::Position.Y - $script:thumbDragStartY
+    $script:spaceScroll = $script:thumbDragStartScroll + [int]($dy * $script:spaceMaxScroll / $denom)
+    Update-SpaceScroll
+})
+$scrollThumb.add_MouseUp({
+    param($s, $e)
+    $script:thumbDrag      = $false
+    $scrollThumb.Capture   = $false
+    $scrollThumb.BackColor = $cBorder
+})
+$scrollThumb.add_MouseEnter({ $scrollThumb.BackColor = $cAccent })
+$scrollThumb.add_MouseLeave({ if (-not $script:thumbDrag) { $scrollThumb.BackColor = $cBorder } })
 
 $btnAddSpace = New-Object System.Windows.Forms.Button
 $btnAddSpace.Text      = "+ ADD SPACE"
@@ -1050,8 +1145,7 @@ $pnlPreview.add_MouseUp({
 # ============================================================
 
 function Build-SpacePanel {
-    $scrollY = [Math]::Abs($pnlSpaces.AutoScrollPosition.Y)
-    $pnlSpaces.Controls.Clear()
+    $pnlSpacesContent.Controls.Clear()
     $pw = $pnlSpaces.Width - 20   # largura util: desconta margem + scrollbar
     $y = 6
     $i = 0
@@ -1073,13 +1167,13 @@ function Build-SpacePanel {
             $lblMon.Font      = New-Object System.Drawing.Font("Consolas", 8, [System.Drawing.FontStyle]::Bold)
             $lblMon.ForeColor = $cOrange
             $lblMon.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
-            $pnlSpaces.Controls.Add($lblMon)
+            $pnlSpacesContent.Controls.Add($lblMon)
             $y += 20
             $sepMon = New-Object System.Windows.Forms.Panel
             $sepMon.Location  = New-Object System.Drawing.Point(0, $y)
             $sepMon.Size      = New-Object System.Drawing.Size($pw, 1)
             $sepMon.BackColor = $cOrange
-            $pnlSpaces.Controls.Add($sepMon)
+            $pnlSpacesContent.Controls.Add($sepMon)
             $y += 5
         }
 
@@ -1102,7 +1196,7 @@ function Build-SpacePanel {
                 $pnlPreview.Invalidate()
             }
         })
-        $pnlSpaces.Controls.Add($pnlHeader)
+        $pnlSpacesContent.Controls.Add($pnlHeader)
 
         $colorBar = New-Object System.Windows.Forms.Panel
         $colorBar.Location  = New-Object System.Drawing.Point(0, 0)
@@ -1278,7 +1372,7 @@ function Build-SpacePanel {
                 Build-SpacePanel
                 $pnlPreview.Invalidate()
             })
-            $pnlSpaces.Controls.Add($btnLock)
+            $pnlSpacesContent.Controls.Add($btnLock)
 
             # Texto: process para unlocked, titulo para locked
             $displayText = if ($isLocked -or -not $layer.Process) {
@@ -1294,7 +1388,7 @@ function Build-SpacePanel {
             $lblLayer.Font      = New-Object System.Drawing.Font("Consolas", 9, [System.Drawing.FontStyle]::Bold)
             $lblLayer.Location  = New-Object System.Drawing.Point(28, $y)
             $lblLayer.Size      = New-Object System.Drawing.Size(($pw - 62), 18)
-            $pnlSpaces.Controls.Add($lblLayer)
+            $pnlSpacesContent.Controls.Add($lblLayer)
 
             # Botao [X] remover layer
             $btnRemove = New-Object System.Windows.Forms.Button
@@ -1317,7 +1411,7 @@ function Build-SpacePanel {
                 Build-SpacePanel
                 $pnlPreview.Invalidate()
             })
-            $pnlSpaces.Controls.Add($btnRemove)
+            $pnlSpacesContent.Controls.Add($btnRemove)
             $y += 18
             $layerIdx++
         }
@@ -1382,7 +1476,7 @@ function Build-SpacePanel {
                 $pnlPreview.Invalidate()
             }
         })
-        $pnlSpaces.Controls.Add($btnAdd)
+        $pnlSpacesContent.Controls.Add($btnAdd)
 
         # Botao "Atalho..." por space
         $btnSpaceShortcut = New-Object System.Windows.Forms.Button
@@ -1467,7 +1561,7 @@ function Build-SpacePanel {
                 $lblStatus.ForeColor = $cGreen
             }
         })
-        $pnlSpaces.Controls.Add($btnSpaceShortcut)
+        $pnlSpacesContent.Controls.Add($btnSpaceShortcut)
 
         $y += 30
 
@@ -1476,12 +1570,14 @@ function Build-SpacePanel {
         $sepSpace.Location  = New-Object System.Drawing.Point(4, $y)
         $sepSpace.Size      = New-Object System.Drawing.Size(($pw - 8), 1)
         $sepSpace.BackColor = $cBorder
-        $pnlSpaces.Controls.Add($sepSpace)
+        $pnlSpacesContent.Controls.Add($sepSpace)
         $y += 8
         $i++
     }
     Register-SpaceHotkeys
-    $pnlSpaces.AutoScrollPosition = New-Object System.Drawing.Point(0, $scrollY)
+    $script:spaceContentH = $y
+    Register-SpaceWheel $pnlSpacesContent
+    Update-SpaceScroll
 }
 
 # ============================================================
@@ -2316,6 +2412,7 @@ function Sync-Layout {
     $btnSavedDown.Top   = $ch - 105
     $btnSavedRename.Top = $ch - 105
 
+    Update-SpaceScroll
     $pnlPreview.Invalidate()
 }
 
