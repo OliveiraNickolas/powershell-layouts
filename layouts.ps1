@@ -2249,15 +2249,19 @@ function Sync-Layout {
     $btnAddSpace.Left = $rightX
     $btnAddSpace.Top  = $ch - 129
 
-    # Canvas fixo: usa posicao calculada uma vez no Shown (nao muda no Resize)
-    $pnlPreview.Left = $script:previewX
-    $pnlPreview.Top  = $script:previewY
-    $lblPreview.Left  = $script:previewX
-    $btnMonPrev.Left  = $script:previewX + 82
-    $lblMonIcon.Left  = $script:previewX + 103
-    $lblMonPage.Left  = $script:previewX + 119
-    $btnMonNext.Left  = $script:previewX + 147
-    $sepV2.Left   = $script:previewX + $script:previewW + 8
+    # Canvas: recentrado em cada resize dentro do espaco disponivel
+    $midLeft  = 213
+    $midRight = $cw - 340          # 12px extra de margem antes do painel direito
+    $prevX = [Math]::Max($midLeft, $midLeft + [int](($midRight - $midLeft - $script:previewW) / 2))
+    $prevY = [Math]::Max(84, [int](84 + ((($ch - 95) - 84 - $script:previewH) / 2)))
+    $pnlPreview.Left = $prevX
+    $pnlPreview.Top  = $prevY
+    $lblPreview.Left  = $prevX
+    $btnMonPrev.Left  = $prevX + 82
+    $lblMonIcon.Left  = $prevX + 103
+    $lblMonPage.Left  = $prevX + 119
+    $btnMonNext.Left  = $prevX + 147
+    $sepV2.Left   = $prevX + $script:previewW + 8
     $sepV2.Height = $ch - 160
     $sepV1.Height = $ch - 160
     $lblRes.Left  = $sepV2.Left - 142
@@ -2286,16 +2290,8 @@ function Sync-Layout {
     $pnlPreview.Invalidate()
 }
 
-# Shown: calcula posicao centrada do canvas uma unica vez e armazena
-$form.add_Shown({
-    $cw = $form.ClientSize.Width
-    $ch = $form.ClientSize.Height
-    $midLeft  = 213
-    $midRight = $cw - 328
-    $script:previewX = [Math]::Max($midLeft, $midLeft + [int](($midRight - $midLeft - $script:previewW) / 2))
-    $script:previewY = [Math]::Max(84, [int](84 + ((($ch - 95) - 84 - $script:previewH) / 2)))
-    Sync-Layout $cw $ch
-})
+# Shown: dispara uma vez, ja com o tamanho final correto
+$form.add_Shown({ Sync-Layout $form.ClientSize.Width $form.ClientSize.Height })
 
 # Resize: reposiciona controles e forca repaint completo para evitar rastro
 $form.add_Resize({
