@@ -1417,12 +1417,23 @@ $btnAddSpace.add_Click({
         $targetMonitor = $script:_addSpaceMonitor
     }
     $n = $script:currentSpaces.Count + 1
-    $script:currentSpaces += @{
+    $newSpace = @{
         Name     = "Space $n"
         Zone     = @(0, 0, 100, 100)
         Monitor  = $targetMonitor
         Layers   = [System.Collections.ArrayList]::new()
         Shortcut = ""
+    }
+    $insertIdx = -1
+    for ($k = 0; $k -lt $script:currentSpaces.Count; $k++) {
+        if ($script:currentSpaces[$k].Monitor -eq $targetMonitor) { $insertIdx = $k }
+    }
+    if ($insertIdx -ge 0 -and $insertIdx -lt $script:currentSpaces.Count - 1) {
+        $before = @($script:currentSpaces[0..$insertIdx])
+        $after  = @($script:currentSpaces[($insertIdx + 1)..($script:currentSpaces.Count - 1)])
+        $script:currentSpaces = $before + $newSpace + $after
+    } else {
+        $script:currentSpaces += $newSpace
     }
     Build-SpacePanel
     $pnlPreview.Invalidate()
