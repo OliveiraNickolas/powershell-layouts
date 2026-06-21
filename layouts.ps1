@@ -112,11 +112,26 @@ public class SnapAPI {
 #  CONSTANTES E ESTADO GLOBAL
 # ============================================================
 
-$screen = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
-$SW     = $screen.Width
-$SH     = $screen.Height
-$SX     = $screen.X
-$SY     = $screen.Y
+$screen   = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
+$SW       = $screen.Width
+$SH       = $screen.Height
+$SX       = $screen.X
+$SY       = $screen.Y
+$scrFull  = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+# Tamanho inicial do form: preview com mesmo aspect ratio da tela
+# preview.Width = formCW - 566 ; preview.Height = formCH - 189
+$_previewH = 400
+$_previewW = [int]($_previewH * $scrFull.Width / $scrFull.Height)
+$_formCW   = $_previewW + 566
+$_formCH   = $_previewH + 189
+# Garante que nao ultrapasse 90% da area util
+if ($_formCW -gt [int]($SW * 0.90)) {
+    $_formCW   = [int]($SW * 0.90)
+    $_previewW = $_formCW - 566
+    $_previewH = [int]($_previewW * $scrFull.Height / $scrFull.Width)
+    $_formCH   = $_previewH + 189
+}
+if ($_formCH -gt [int]($SH * 0.90)) { $_formCH = [int]($SH * 0.90) }
 
 $script:monitors      = @([System.Windows.Forms.Screen]::AllScreens | Sort-Object { $_.Bounds.X })
 $script:previewMonitor = 0   # pagina do canvas atualmente visivel
@@ -322,7 +337,8 @@ $script:spaceColors = @(
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text            = "SnapLayout"
-$form.Size            = New-Object System.Drawing.Size(1080, 575)
+$form.Size            = New-Object System.Drawing.Size($_formCW, $_formCH)
+$form.MinimumSize     = New-Object System.Drawing.Size($_formCW, $_formCH)
 $form.StartPosition   = "CenterScreen"
 $form.FormBorderStyle = "None"
 $form.MaximizeBox     = $false
@@ -330,7 +346,6 @@ $form.BackColor       = $cBg
 $form.ForeColor       = $cText
 $form.Font            = New-Object System.Drawing.Font("Consolas", 8, [System.Drawing.FontStyle]::Bold)
 $form.KeyPreview      = $true
-$form.MinimumSize     = New-Object System.Drawing.Size(1080, 575)
 # DoubleBuffered e ResizeRedraw sao propriedade/metodo protected — acesso via reflection
 $setProp = [System.Windows.Forms.Control].GetProperty('DoubleBuffered', [System.Reflection.BindingFlags]'NonPublic,Instance')
 $setProp.SetValue($form, $true, $null)
