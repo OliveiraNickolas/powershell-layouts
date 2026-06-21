@@ -2226,6 +2226,8 @@ function Sync-Layout {
     $sepV1.Height      = $ch - 160
     $pnlPreview.Width  = $sepV2.Left - 228
     $pnlPreview.Height = $ch - 189
+    # lblRes alinhado a direita do preview (right edge = pnlPreview.Right = sepV2.Left - 8)
+    $lblRes.Left       = $sepV2.Left - 142
 
     # Barra inferior
     $sepBottom.Top      = $ch - 95
