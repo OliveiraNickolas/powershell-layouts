@@ -1053,7 +1053,7 @@ function Build-SpacePanel {
         $pnlHeader = New-Object System.Windows.Forms.Panel
         $pnlHeader.Location  = New-Object System.Drawing.Point(2, $y)
         $pnlHeader.Size      = New-Object System.Drawing.Size($pw, 26)
-        $pnlHeader.BackColor = if ($isHighlighted) { [System.Drawing.Color]::FromArgb(40, 20, 55) } else { $cBg }
+        $pnlHeader.BackColor = if ($isHighlighted) { [System.Drawing.Color]::FromArgb(10, 60, 75) } else { $cBg }
         $pnlHeader.Cursor    = [System.Windows.Forms.Cursors]::Hand
         $pnlHeader.Tag       = $i
         # Click no header destaca o space no canvas
@@ -1072,6 +1072,14 @@ function Build-SpacePanel {
         $colorBar.Size      = New-Object System.Drawing.Size(5, 26)
         $colorBar.BackColor = $strokeColor
         $pnlHeader.Controls.Add($colorBar)
+
+        if ($isHighlighted) {
+            $selBar = New-Object System.Windows.Forms.Panel
+            $selBar.Location  = New-Object System.Drawing.Point(5, 0)
+            $selBar.Size      = New-Object System.Drawing.Size(($pw - 5), 2)
+            $selBar.BackColor = $cAccent
+            $pnlHeader.Controls.Add($selBar)
+        }
 
         # Label clicavel para renomear inline
         $lblName = New-Object System.Windows.Forms.Label
