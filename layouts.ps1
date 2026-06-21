@@ -1007,6 +1007,7 @@ $pnlPreview.add_MouseUp({
 
 function Build-SpacePanel {
     $pnlSpaces.Controls.Clear()
+    $pw = $pnlSpaces.Width - 20   # largura util: desconta margem + scrollbar
     $y = 6
     $i = 0
     $lastMonitor = -1
@@ -1022,7 +1023,7 @@ function Build-SpacePanel {
             $lblMon = New-Object System.Windows.Forms.Label
             $lblMon.Text      = "── TELA $($space.Monitor + 1) ──"
             $lblMon.Location  = New-Object System.Drawing.Point(2, $y)
-            $lblMon.Size      = New-Object System.Drawing.Size(250, 16)
+            $lblMon.Size      = New-Object System.Drawing.Size($pw, 16)
             $lblMon.Font      = New-Object System.Drawing.Font("Consolas", 7, [System.Drawing.FontStyle]::Bold)
             $lblMon.ForeColor = $cMuted
             $lblMon.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
@@ -1036,7 +1037,7 @@ function Build-SpacePanel {
         $isHighlighted = ($i -eq $script:highlightedSpaceIndex)
         $pnlHeader = New-Object System.Windows.Forms.Panel
         $pnlHeader.Location  = New-Object System.Drawing.Point(2, $y)
-        $pnlHeader.Size      = New-Object System.Drawing.Size(250, 26)
+        $pnlHeader.Size      = New-Object System.Drawing.Size($pw, 26)
         $pnlHeader.BackColor = if ($isHighlighted) { [System.Drawing.Color]::FromArgb(40, 20, 55) } else { $cBg }
         $pnlHeader.Cursor    = [System.Windows.Forms.Cursors]::Hand
         $pnlHeader.Tag       = $i
@@ -1063,7 +1064,7 @@ function Build-SpacePanel {
         $lblName.ForeColor = if ($isHighlighted) { $cAccent } else { $cText }
         $lblName.Font      = New-Object System.Drawing.Font("Consolas", 10, [System.Drawing.FontStyle]::Bold)
         $lblName.Location  = New-Object System.Drawing.Point(10, 4)
-        $lblName.Size      = New-Object System.Drawing.Size(130, 18)
+        $lblName.Size      = New-Object System.Drawing.Size(($pw - 120), 18)
         $lblName.Cursor    = [System.Windows.Forms.Cursors]::IBeam
 
         # TextBox inline (oculto por padrao)
@@ -1071,7 +1072,7 @@ function Build-SpacePanel {
         $txtRename.Text        = $space.Name
         $txtRename.Font        = New-Object System.Drawing.Font("Consolas", 10, [System.Drawing.FontStyle]::Bold)
         $txtRename.Location    = New-Object System.Drawing.Point(9, 3)
-        $txtRename.Size        = New-Object System.Drawing.Size(130, 20)
+        $txtRename.Size        = New-Object System.Drawing.Size(($pw - 120), 20)
         $txtRename.BackColor   = $cBg
         $txtRename.ForeColor   = $cText
         $txtRename.BorderStyle = "FixedSingle"
@@ -1114,7 +1115,7 @@ function Build-SpacePanel {
         # Botoes de reordenar
         $btnUp = New-Object System.Windows.Forms.Button
         $btnUp.Text      = "p"
-        $btnUp.Location  = New-Object System.Drawing.Point(148, 2)
+        $btnUp.Location  = New-Object System.Drawing.Point(($pw - 102), 2)
         $btnUp.Size      = New-Object System.Drawing.Size(18, 22)
         $btnUp.FlatStyle = "Flat"
         $btnUp.BackColor = $cBg
@@ -1137,7 +1138,7 @@ function Build-SpacePanel {
 
         $btnDown = New-Object System.Windows.Forms.Button
         $btnDown.Text      = "q"
-        $btnDown.Location  = New-Object System.Drawing.Point(168, 2)
+        $btnDown.Location  = New-Object System.Drawing.Point(($pw - 82), 2)
         $btnDown.Size      = New-Object System.Drawing.Size(18, 22)
         $btnDown.FlatStyle = "Flat"
         $btnDown.BackColor = $cBg
@@ -1161,7 +1162,7 @@ function Build-SpacePanel {
         # Botao de deletar space
         $btnDelSpace = New-Object System.Windows.Forms.Button
         $btnDelSpace.Text      = "Ò"
-        $btnDelSpace.Location  = New-Object System.Drawing.Point(226, 2)
+        $btnDelSpace.Location  = New-Object System.Drawing.Point(($pw - 24), 2)
         $btnDelSpace.Size      = New-Object System.Drawing.Size(22, 22)
         $btnDelSpace.FlatStyle = "Flat"
         $btnDelSpace.BackColor = $cBg
@@ -1232,13 +1233,13 @@ function Build-SpacePanel {
             $lblLayer.ForeColor = if ($isLocked) { $cOrange } else { $cText }
             $lblLayer.Font      = New-Object System.Drawing.Font("Consolas", 9, [System.Drawing.FontStyle]::Bold)
             $lblLayer.Location  = New-Object System.Drawing.Point(28, $y)
-            $lblLayer.Size      = New-Object System.Drawing.Size(188, 18)
+            $lblLayer.Size      = New-Object System.Drawing.Size(($pw - 62), 18)
             $pnlSpaces.Controls.Add($lblLayer)
 
             # Botao [X] remover layer
             $btnRemove = New-Object System.Windows.Forms.Button
             $btnRemove.Text      = "Ò"
-            $btnRemove.Location  = New-Object System.Drawing.Point(218, ($y - 1))
+            $btnRemove.Location  = New-Object System.Drawing.Point(($pw - 32), ($y - 1))
             $btnRemove.Size      = New-Object System.Drawing.Size(20, 18)
             $btnRemove.FlatStyle = "Flat"
             $btnRemove.BackColor = $cBg
@@ -1265,7 +1266,7 @@ function Build-SpacePanel {
         $btnAdd = New-Object System.Windows.Forms.Button
         $btnAdd.Text      = "+ ADD LAYER"
         $btnAdd.Location  = New-Object System.Drawing.Point(4, $y)
-        $btnAdd.Size      = New-Object System.Drawing.Size(120, 22)
+        $btnAdd.Size      = New-Object System.Drawing.Size(([int](($pw - 10) / 2)), 22)
         $btnAdd.FlatStyle = "Flat"
         $btnAdd.BackColor = $cBg
         $btnAdd.ForeColor = $cGreen
@@ -1326,8 +1327,8 @@ function Build-SpacePanel {
         # Botao "Atalho..." por space
         $btnSpaceShortcut = New-Object System.Windows.Forms.Button
         $btnSpaceShortcut.Text      = if ($space.Shortcut) { $space.Shortcut.ToUpper() } else { "ATALHO" }
-        $btnSpaceShortcut.Location  = New-Object System.Drawing.Point(126, $y)
-        $btnSpaceShortcut.Size      = New-Object System.Drawing.Size(120, 22)
+        $btnSpaceShortcut.Location  = New-Object System.Drawing.Point(([int](($pw - 10) / 2) + 6), $y)
+        $btnSpaceShortcut.Size      = New-Object System.Drawing.Size(([int](($pw - 10) / 2)), 22)
         $btnSpaceShortcut.FlatStyle = "Flat"
         $btnSpaceShortcut.BackColor = $cBg
         $btnSpaceShortcut.ForeColor = $cAccent
@@ -1460,7 +1461,7 @@ $btnAddSpace.add_Click({
         for ($m = 0; $m -lt $script:monitors.Count; $m++) { $choices += "Tela $($m + 1)" }
         $dlg = New-Object System.Windows.Forms.Form
         $dlg.Text            = "Adicionar Space"
-        $dlg.Size            = New-Object System.Drawing.Size(260, 130 + $choices.Count * 32)
+        $dlg.Size            = New-Object System.Drawing.Size(260, (130 + $choices.Count * 32))
         $dlg.StartPosition   = "CenterParent"
         $dlg.FormBorderStyle = "FixedToolWindow"
         $dlg.BackColor       = $cBg
