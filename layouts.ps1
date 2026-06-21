@@ -331,6 +331,10 @@ $form.ForeColor       = $cText
 $form.Font            = New-Object System.Drawing.Font("Consolas", 8, [System.Drawing.FontStyle]::Bold)
 $form.KeyPreview      = $true
 $form.MinimumSize     = New-Object System.Drawing.Size(1080, 575)
+$form.DoubleBuffered  = $true
+# ResizeRedraw faz o Windows apagar o fundo ao redimensionar (evita rastro)
+$setStyle = [System.Windows.Forms.Control].GetMethod('SetStyle', [System.Reflection.BindingFlags]'NonPublic,Instance')
+$setStyle.Invoke($form, @([System.Windows.Forms.ControlStyles]::ResizeRedraw, $true))
 
 # Borda externa cyan (2px) via Paint no form
 $form.add_Paint({
@@ -2247,8 +2251,12 @@ function Sync-Layout {
 # Shown: dispara uma vez, ja com o tamanho final correto
 $form.add_Shown({ Sync-Layout $form.ClientSize.Width $form.ClientSize.Height })
 
-# Resize: dispara ao usuario redimensionar
-$form.add_Resize({ Sync-Layout $form.ClientSize.Width $form.ClientSize.Height })
+# Resize: reposiciona controles e forca repaint completo para evitar rastro
+$form.add_Resize({
+    Sync-Layout $form.ClientSize.Width $form.ClientSize.Height
+    $form.Invalidate($true)
+    $form.Update()
+})
 
 [void]$form.ShowDialog()
 $hotkeyTimer.Stop()
