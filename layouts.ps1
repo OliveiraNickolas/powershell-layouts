@@ -2291,8 +2291,8 @@ function Sync-Layout {
     $lblMonPage.Left  = $prevX + 119
     $btnMonNext.Left  = $prevX + 147
     $sepV2.Left   = $prevX + $script:previewW + 8
-    $sepV2.Height = $ch - 160
-    $sepV1.Height = $ch - 160
+    $sepV2.Height = $ch - 163
+    $sepV1.Height = $ch - 163
     $lblRes.Left  = $sepV2.Left - 142
 
     # Barra inferior
@@ -2308,9 +2308,9 @@ function Sync-Layout {
 
     # Painel esquerdo
     $lstSaved.Height    = $ch - 285
-    $btnSavedUp.Top     = $ch - 139
-    $btnSavedDown.Top   = $ch - 139
-    $btnSavedRename.Top = $ch - 139
+    $btnSavedUp.Top     = $ch - 129
+    $btnSavedDown.Top   = $ch - 129
+    $btnSavedRename.Top = $ch - 129
 
     $pnlPreview.Invalidate()
 }
