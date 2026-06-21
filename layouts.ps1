@@ -135,6 +135,13 @@ if ($_formCH -gt [int]($SH * 0.90)) { $_formCH = [int]($SH * 0.90) }
 # Dimensoes fixas do canvas (nao mudam com resize)
 $script:previewW = $_previewW
 $script:previewH = $_previewH
+# Centro horizontal da coluna do meio (entre sepV1 e pnlSpaces)
+$_midCenter = [int]((213 + $_formCW - 328) / 2)
+# Posicoes dos botoes da barra inferior (coluna do meio): apply(190)+8+save(190)+8+disk(34) = 430
+$_midGroupX   = $_midCenter - 215
+$_midApplyX   = $_midGroupX
+$_midSaveX    = $_midGroupX + 198
+$_midDiskX    = $_midGroupX + 396
 
 $script:monitors      = @([System.Windows.Forms.Screen]::AllScreens | Sort-Object { $_.Bounds.X })
 $script:previewMonitor = 0   # pagina do canvas atualmente visivel
@@ -692,7 +699,7 @@ $form.Controls.Add($sepBottom)
 
 $btnApply = New-Object System.Windows.Forms.Button
 $btnApply.Text      = "APLICAR LAYOUT"
-$btnApply.Location  = New-Object System.Drawing.Point(280, 483)
+$btnApply.Location  = New-Object System.Drawing.Point($_midApplyX, 483)
 $btnApply.Size      = New-Object System.Drawing.Size(190, 34)
 $btnApply.FlatStyle = "Flat"
 $btnApply.BackColor = $cPink
@@ -703,7 +710,7 @@ $form.Controls.Add($btnApply)
 
 $btnSaveCurrent = New-Object System.Windows.Forms.Button
 $btnSaveCurrent.Text      = "SALVAR NOVO LAYOUT"
-$btnSaveCurrent.Location  = New-Object System.Drawing.Point(478, 483)
+$btnSaveCurrent.Location  = New-Object System.Drawing.Point($_midSaveX, 483)
 $btnSaveCurrent.Size      = New-Object System.Drawing.Size(190, 34)
 $btnSaveCurrent.FlatStyle = "Flat"
 $btnSaveCurrent.BackColor = $cBg
@@ -716,7 +723,7 @@ $form.Controls.Add($btnSaveCurrent)
 # -- Botao salvar sobrescrevendo (disquete Wingdings "<")
 $btnOverwrite = New-Object System.Windows.Forms.Button
 $btnOverwrite.Text      = "<"
-$btnOverwrite.Location  = New-Object System.Drawing.Point(674, 483)
+$btnOverwrite.Location  = New-Object System.Drawing.Point($_midDiskX, 483)
 $btnOverwrite.Size      = New-Object System.Drawing.Size(34, 34)
 $btnOverwrite.FlatStyle = "Flat"
 $btnOverwrite.BackColor = $cBg
@@ -1027,15 +1034,22 @@ function Build-SpacePanel {
 
         if ($script:monitors.Count -gt 1 -and $space.Monitor -ne $lastMonitor) {
             $lastMonitor = $space.Monitor
+            if ($y -gt 6) { $y += 6 }  # respiro extra entre blocos de tela
             $lblMon = New-Object System.Windows.Forms.Label
-            $lblMon.Text      = "── TELA $($space.Monitor + 1) ──"
-            $lblMon.Location  = New-Object System.Drawing.Point(2, $y)
-            $lblMon.Size      = New-Object System.Drawing.Size($pw, 16)
-            $lblMon.Font      = New-Object System.Drawing.Font("Consolas", 7, [System.Drawing.FontStyle]::Bold)
-            $lblMon.ForeColor = $cMuted
+            $lblMon.Text      = "TELA $($space.Monitor + 1)"
+            $lblMon.Location  = New-Object System.Drawing.Point(0, $y)
+            $lblMon.Size      = New-Object System.Drawing.Size($pw, 18)
+            $lblMon.Font      = New-Object System.Drawing.Font("Consolas", 8, [System.Drawing.FontStyle]::Bold)
+            $lblMon.ForeColor = $cAccent
             $lblMon.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
             $pnlSpaces.Controls.Add($lblMon)
-            $y += 18
+            $y += 20
+            $sepMon = New-Object System.Windows.Forms.Panel
+            $sepMon.Location  = New-Object System.Drawing.Point(0, $y)
+            $sepMon.Size      = New-Object System.Drawing.Size($pw, 1)
+            $sepMon.BackColor = $cAccent
+            $pnlSpaces.Controls.Add($sepMon)
+            $y += 5
         }
 
         $strokeColor = $script:spaceColors[$ci].Stroke
