@@ -2250,12 +2250,18 @@ function Sync-Layout {
     $btnAddSpace.Top  = $ch - 129
 
     # Canvas fixo: centralizado entre sepV1 (x=210) e pnlSpaces
-    $midLeft  = 211
+    $midLeft  = 213
     $midRight = $cw - 328
-    $prevX = [Math]::Max($midLeft + 4, [int](($midLeft + $midRight - $script:previewW) / 2))
+    $prevX = [Math]::Max($midLeft, $midLeft + [int](($midRight - $midLeft - $script:previewW) / 2))
     $prevY = [Math]::Max(84, [int](84 + ((($ch - 95) - 84 - $script:previewH) / 2)))
     $pnlPreview.Left = $prevX
     $pnlPreview.Top  = $prevY
+    # Todos os controles do header do preview seguem prevX
+    $lblPreview.Left  = $prevX
+    $btnMonPrev.Left  = $prevX + 82
+    $lblMonIcon.Left  = $prevX + 103
+    $lblMonPage.Left  = $prevX + 119
+    $btnMonNext.Left  = $prevX + 147
     $sepV2.Left   = $prevX + $script:previewW + 8
     $sepV2.Height = $ch - 160
     $sepV1.Height = $ch - 160
