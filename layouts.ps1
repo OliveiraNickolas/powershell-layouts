@@ -737,7 +737,7 @@ $lblStatus.Anchor = $ancLRB
 # Grip de resize no canto inferior direito
 $grip = New-Object System.Windows.Forms.Panel
 $grip.Size      = New-Object System.Drawing.Size(10, 10)
-$grip.Location  = New-Object System.Drawing.Point($form.ClientSize.Width - 10, $form.ClientSize.Height - 10)
+$grip.Location  = New-Object System.Drawing.Point(1070, 565)
 $grip.BackColor = $cBorder
 $grip.Cursor    = [System.Windows.Forms.Cursors]::SizeNWSE
 $grip.Anchor    = $ancBR
