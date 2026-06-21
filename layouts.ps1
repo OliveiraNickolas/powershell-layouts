@@ -935,8 +935,22 @@ function Build-SpacePanel {
     $pnlSpaces.Controls.Clear()
     $y = 6
     $i = 0
+    $lastMonitor = -1
 
     foreach ($space in $script:currentSpaces) {
+        if ($script:monitors.Count -gt 1 -and $space.Monitor -ne $lastMonitor) {
+            $lastMonitor = $space.Monitor
+            $lblMon = New-Object System.Windows.Forms.Label
+            $lblMon.Text      = "── TELA $($space.Monitor + 1) ──"
+            $lblMon.Location  = New-Object System.Drawing.Point(2, $y)
+            $lblMon.Size      = New-Object System.Drawing.Size(250, 16)
+            $lblMon.Font      = New-Object System.Drawing.Font("Consolas", 7, [System.Drawing.FontStyle]::Bold)
+            $lblMon.ForeColor = $cMuted
+            $lblMon.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
+            $pnlSpaces.Controls.Add($lblMon)
+            $y += 18
+        }
+
         $ci = $i % $script:spaceColors.Count
         $strokeColor = $script:spaceColors[$ci].Stroke
 
