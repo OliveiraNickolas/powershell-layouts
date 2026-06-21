@@ -132,6 +132,9 @@ if ($_formCW -gt [int]($SW * 0.90)) {
     $_formCH   = $_previewH + 189
 }
 if ($_formCH -gt [int]($SH * 0.90)) { $_formCH = [int]($SH * 0.90) }
+# Dimensoes fixas do canvas (nao mudam com resize)
+$script:previewW = $_previewW
+$script:previewH = $_previewH
 
 $script:monitors      = @([System.Windows.Forms.Screen]::AllScreens | Sort-Object { $_.Bounds.X })
 $script:previewMonitor = 0   # pagina do canvas atualmente visivel
@@ -1021,6 +1024,7 @@ $pnlPreview.add_MouseUp({
 # ============================================================
 
 function Build-SpacePanel {
+    $scrollY = [Math]::Abs($pnlSpaces.AutoScrollPosition.Y)
     $pnlSpaces.Controls.Clear()
     $pw = $pnlSpaces.Width - 20   # largura util: desconta margem + scrollbar
     $y = 6
@@ -1444,6 +1448,7 @@ function Build-SpacePanel {
         $i++
     }
     Register-SpaceHotkeys
+    $pnlSpaces.AutoScrollPosition = New-Object System.Drawing.Point(0, $scrollY)
 }
 
 # ============================================================
@@ -2244,14 +2249,13 @@ function Sync-Layout {
     $btnAddSpace.Left = $rightX
     $btnAddSpace.Top  = $ch - 129
 
-    # Separador vertical direito e preview crescem juntos
-    $sepV2.Left        = $rightX - 10
-    $sepV2.Height      = $ch - 160
-    $sepV1.Height      = $ch - 160
-    $pnlPreview.Width  = $sepV2.Left - 228
-    $pnlPreview.Height = $ch - 189
-    # lblRes alinhado a direita do preview (right edge = pnlPreview.Right = sepV2.Left - 8)
-    $lblRes.Left       = $sepV2.Left - 142
+    # Canvas fixo: sepV2 ancorado na borda direita do preview (nao muda com resize)
+    $fixedSepV2 = 220 + $script:previewW + 8
+    $sepV2.Left   = $fixedSepV2
+    $sepV2.Height = $ch - 160
+    $sepV1.Height = $ch - 160
+    # lblRes alinhado a direita do preview
+    $lblRes.Left  = $fixedSepV2 - 142
 
     # Barra inferior
     $sepBottom.Top      = $ch - 95
