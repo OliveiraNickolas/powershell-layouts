@@ -936,8 +936,13 @@ function Build-SpacePanel {
     $y = 6
     $i = 0
     $lastMonitor = -1
+    $monColorIdx = @{}   # contador de cor por monitor, igual ao canvas
 
     foreach ($space in $script:currentSpaces) {
+        if (-not $monColorIdx.ContainsKey($space.Monitor)) { $monColorIdx[$space.Monitor] = 0 }
+        $ci = $monColorIdx[$space.Monitor] % $script:spaceColors.Count
+        $monColorIdx[$space.Monitor]++
+
         if ($script:monitors.Count -gt 1 -and $space.Monitor -ne $lastMonitor) {
             $lastMonitor = $space.Monitor
             $lblMon = New-Object System.Windows.Forms.Label
@@ -951,7 +956,6 @@ function Build-SpacePanel {
             $y += 18
         }
 
-        $ci = $i % $script:spaceColors.Count
         $strokeColor = $script:spaceColors[$ci].Stroke
 
         # Indicador de cor + Nome + botoes
