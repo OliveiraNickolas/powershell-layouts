@@ -460,12 +460,48 @@ $form.Controls.Add($lblSaved)
 
 $lstSaved = New-Object System.Windows.Forms.ListBox
 $lstSaved.Location    = New-Object System.Drawing.Point(8, 142)
-$lstSaved.Size        = New-Object System.Drawing.Size(194, 328)
+$lstSaved.Size        = New-Object System.Drawing.Size(194, 290)
 $lstSaved.BackColor   = $cBg
 $lstSaved.ForeColor   = $cText
 $lstSaved.BorderStyle = "None"
 $lstSaved.Font        = New-Object System.Drawing.Font("Consolas", 8, [System.Drawing.FontStyle]::Bold)
 $form.Controls.Add($lstSaved)
+
+$btnSavedUp = New-Object System.Windows.Forms.Button
+$btnSavedUp.Text      = "p"   # Wingdings 3: seta cima
+$btnSavedUp.Font      = New-Object System.Drawing.Font("Wingdings 3", 7, [System.Drawing.FontStyle]::Bold)
+$btnSavedUp.Location  = New-Object System.Drawing.Point(8, 436)
+$btnSavedUp.Size      = New-Object System.Drawing.Size(28, 26)
+$btnSavedUp.FlatStyle = "Flat"
+$btnSavedUp.BackColor = $cBg
+$btnSavedUp.ForeColor = $cAccent
+$btnSavedUp.FlatAppearance.BorderColor = $cBorder
+$btnSavedUp.FlatAppearance.BorderSize  = 1
+$form.Controls.Add($btnSavedUp)
+
+$btnSavedDown = New-Object System.Windows.Forms.Button
+$btnSavedDown.Text      = "q"   # Wingdings 3: seta baixo
+$btnSavedDown.Font      = New-Object System.Drawing.Font("Wingdings 3", 7, [System.Drawing.FontStyle]::Bold)
+$btnSavedDown.Location  = New-Object System.Drawing.Point(40, 436)
+$btnSavedDown.Size      = New-Object System.Drawing.Size(28, 26)
+$btnSavedDown.FlatStyle = "Flat"
+$btnSavedDown.BackColor = $cBg
+$btnSavedDown.ForeColor = $cAccent
+$btnSavedDown.FlatAppearance.BorderColor = $cBorder
+$btnSavedDown.FlatAppearance.BorderSize  = 1
+$form.Controls.Add($btnSavedDown)
+
+$btnSavedRename = New-Object System.Windows.Forms.Button
+$btnSavedRename.Text      = "RENOMEAR"
+$btnSavedRename.Location  = New-Object System.Drawing.Point(72, 436)
+$btnSavedRename.Size      = New-Object System.Drawing.Size(130, 26)
+$btnSavedRename.FlatStyle = "Flat"
+$btnSavedRename.BackColor = $cBg
+$btnSavedRename.ForeColor = $cAccent
+$btnSavedRename.FlatAppearance.BorderColor = $cBorder
+$btnSavedRename.FlatAppearance.BorderSize  = 1
+$btnSavedRename.Font      = New-Object System.Drawing.Font("Consolas", 8, [System.Drawing.FontStyle]::Bold)
+$form.Controls.Add($btnSavedRename)
 
 $btnDeleteSaved = New-Object System.Windows.Forms.Button
 $btnDeleteSaved.Text      = "EXCLUIR"
@@ -1385,6 +1421,7 @@ $btnSaveCurrent.add_Click({
             $sp = @{
                 Name     = $s.Name
                 Zone     = @($s.Zone)
+                Monitor  = if ($null -ne $s.Monitor) { [int]$s.Monitor } else { 0 }
                 Layers   = [System.Collections.ArrayList]::new()
                 Shortcut = if ($s.Shortcut) { $s.Shortcut } else { "" }
             }
@@ -1437,6 +1474,105 @@ $btnOverwrite.add_Click({
     Refresh-SavedList
     $lblStatus.Text      = "Layout '$($script:currentName)' sobrescrito."
     $lblStatus.ForeColor = $cGreen
+})
+
+function Move-SavedLayout($name, $direction) {
+    $keys = [System.Collections.ArrayList]@($script:savedLayouts.Keys)
+    $idx  = $keys.IndexOf($name)
+    if ($idx -lt 0) { return }
+    if ($direction -eq "up"   -and $idx -eq 0)                   { return }
+    if ($direction -eq "down" -and $idx -eq ($keys.Count - 1))   { return }
+    $swap = if ($direction -eq "up") { $idx - 1 } else { $idx + 1 }
+    $tmp = $keys[$idx]; $keys[$idx] = $keys[$swap]; $keys[$swap] = $tmp
+    $newDict = [ordered]@{}
+    foreach ($k in $keys) { $newDict[$k] = $script:savedLayouts[$k] }
+    $script:savedLayouts = $newDict
+}
+
+function Get-SelectedLayoutName {
+    $sel = $lstSaved.SelectedItem
+    if (-not $sel) { return $null }
+    return ($sel -replace '\s*\[.*\]\s*$', '')
+}
+
+$btnSavedUp.add_Click({
+    $name = Get-SelectedLayoutName
+    if (-not $name) { return }
+    Move-SavedLayout $name "up"
+    Save-AllLayouts
+    Refresh-SavedList
+    $match = $lstSaved.Items | Where-Object { ($_ -replace '\s*\[.*\]\s*$', '') -eq $name } | Select-Object -First 1
+    if ($match) { $lstSaved.SelectedItem = $match }
+})
+
+$btnSavedDown.add_Click({
+    $name = Get-SelectedLayoutName
+    if (-not $name) { return }
+    Move-SavedLayout $name "down"
+    Save-AllLayouts
+    Refresh-SavedList
+    $match = $lstSaved.Items | Where-Object { ($_ -replace '\s*\[.*\]\s*$', '') -eq $name } | Select-Object -First 1
+    if ($match) { $lstSaved.SelectedItem = $match }
+})
+
+$btnSavedRename.add_Click({
+    $oldName = Get-SelectedLayoutName
+    if (-not $oldName) {
+        $lblStatus.Text      = "Selecione um layout salvo primeiro."
+        $lblStatus.ForeColor = $cOrange
+        return
+    }
+    $dlg = New-Object System.Windows.Forms.Form
+    $dlg.Text            = "Renomear Layout"
+    $dlg.Size            = New-Object System.Drawing.Size(350, 150)
+    $dlg.StartPosition   = "CenterParent"
+    $dlg.FormBorderStyle = "FixedToolWindow"
+    $dlg.BackColor       = $cBg
+    $dlg.ForeColor       = $cText
+    $lblN = New-Object System.Windows.Forms.Label
+    $lblN.Text     = "Novo nome:"
+    $lblN.Location = New-Object System.Drawing.Point(10, 15)
+    $lblN.Size     = New-Object System.Drawing.Size(320, 18)
+    $dlg.Controls.Add($lblN)
+    $txtN = New-Object System.Windows.Forms.TextBox
+    $txtN.Location  = New-Object System.Drawing.Point(10, 38)
+    $txtN.Size      = New-Object System.Drawing.Size(315, 24)
+    $txtN.BackColor = $cSurface
+    $txtN.ForeColor = $cText
+    $txtN.Text      = $oldName
+    $txtN.SelectAll()
+    $dlg.Controls.Add($txtN)
+    $btnOk = New-Object System.Windows.Forms.Button
+    $btnOk.Text         = "Renomear"
+    $btnOk.Location     = New-Object System.Drawing.Point(10, 72)
+    $btnOk.Size         = New-Object System.Drawing.Size(100, 30)
+    $btnOk.FlatStyle    = "Flat"
+    $btnOk.BackColor    = $cAccent
+    $btnOk.ForeColor    = [System.Drawing.Color]::White
+    $btnOk.DialogResult = [System.Windows.Forms.DialogResult]::OK
+    $dlg.Controls.Add($btnOk)
+    $dlg.AcceptButton = $btnOk
+    if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+        $newName = $txtN.Text.Trim()
+        if ($newName -and $newName -ne $oldName -and -not $script:savedLayouts.Contains($newName)) {
+            $newDict = [ordered]@{}
+            foreach ($k in $script:savedLayouts.Keys) {
+                $key = if ($k -eq $oldName) { $newName } else { $k }
+                $newDict[$key] = $script:savedLayouts[$k]
+            }
+            $script:savedLayouts = $newDict
+            if ($script:currentName -eq $oldName) { $script:currentName = $newName }
+            Save-AllLayouts
+            Refresh-SavedList
+            $match = $lstSaved.Items | Where-Object { ($_ -replace '\s*\[.*\]\s*$', '') -eq $newName } | Select-Object -First 1
+            if ($match) { $lstSaved.SelectedItem = $match }
+            $lblStatus.Text      = "Layout renomeado para '$newName'."
+            $lblStatus.ForeColor = $cGreen
+        } elseif ($script:savedLayouts.Contains($newName) -and $newName -ne $oldName) {
+            $lblStatus.Text      = "Ja existe um layout com esse nome."
+            $lblStatus.ForeColor = $cOrange
+        }
+    }
 })
 
 # -- Excluir Layout Salvo
