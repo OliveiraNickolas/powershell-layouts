@@ -635,11 +635,23 @@ $form.Controls.Add($lblSpaces)
 
 $pnlSpaces = New-Object System.Windows.Forms.Panel
 $pnlSpaces.Location            = New-Object System.Drawing.Point(792, 84)
-$pnlSpaces.Size                = New-Object System.Drawing.Size(270, 386)
+$pnlSpaces.Size                = New-Object System.Drawing.Size(270, 358)
 $pnlSpaces.BackColor           = $cBg
 $pnlSpaces.AutoScroll          = $true
 $pnlSpaces.AutoScrollMinSize   = New-Object System.Drawing.Size(1, 1)
 $form.Controls.Add($pnlSpaces)
+
+$btnAddSpace = New-Object System.Windows.Forms.Button
+$btnAddSpace.Text      = "+ ADD SPACE"
+$btnAddSpace.Location  = New-Object System.Drawing.Point(792, 446)
+$btnAddSpace.Size      = New-Object System.Drawing.Size(270, 28)
+$btnAddSpace.FlatStyle = "Flat"
+$btnAddSpace.BackColor = $cBg
+$btnAddSpace.ForeColor = $cGreen
+$btnAddSpace.FlatAppearance.BorderColor = $cGreen
+$btnAddSpace.FlatAppearance.BorderSize  = 1
+$btnAddSpace.Font      = New-Object System.Drawing.Font("Consolas", 8, [System.Drawing.FontStyle]::Bold)
+$form.Controls.Add($btnAddSpace)
 
 # ============================================================
 #  BARRA DE ACOES (baixo)
@@ -1346,6 +1358,20 @@ function Select-Layout($name, $source) {
     $lblStatus.Text      = "Layout: $name"
     $lblStatus.ForeColor = $cMuted
 }
+
+$btnAddSpace.add_Click({
+    $n = $script:currentSpaces.Count + 1
+    $script:currentSpaces += @{
+        Name     = "Space $n"
+        Zone     = @(0, 0, 100, 100)
+        Monitor  = $script:previewMonitor
+        Layers   = [System.Collections.ArrayList]::new()
+        Shortcut = ""
+    }
+    Build-SpacePanel
+    $pnlPreview.Invalidate()
+    $pnlSpaces.ScrollControlIntoView($pnlSpaces.Controls[$pnlSpaces.Controls.Count - 1])
+})
 
 $lstSaved.add_SelectedIndexChanged({
     $sel = $lstSaved.SelectedItem
