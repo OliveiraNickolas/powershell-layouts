@@ -2204,10 +2204,12 @@ function Sync-Layout {
     param([int]$cw, [int]$ch)
     if ($cw -lt 100 -or $ch -lt 100) { return }
 
-    # Titlebar e botoes de fechar/minimizar
+    # Titlebar, subbar e separador horizontal do topo
     $pnlTitleBar.Width = $cw - 6
     $btnMinimize.Left  = $pnlTitleBar.Width - 52
     $btnClose.Left     = $pnlTitleBar.Width - 28
+    $pnlSubBar.Width   = $cw - 6
+    $sep.Width         = $cw - 6
 
     # Painel direito: mantém margem de 18px à direita
     $rightX = $cw - 288
