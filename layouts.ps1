@@ -139,9 +139,10 @@ $script:spaceHotkeyCooldown = $false
 # Index do space destacado no canvas
 $script:highlightedSpaceIndex = -1
 # Estado de drag-resize no canvas
-$script:dragSpaceIdx  = -1
-$script:dragEdge      = ""
-$script:dragStartZone = @()
+$script:dragSpaceIdx      = -1
+$script:dragEdge          = ""
+$script:dragStartZone     = @()
+$script:dragStartMousePct = @(0, 0)
 
 # ============================================================
 #  FUNCOES UTILITARIAS
@@ -837,28 +838,43 @@ $pnlPreview.add_MouseMove({
         $oz = $script:dragStartZone
         $curX = [Math]::Round($e.X / $pw * 100)
         $curY = [Math]::Round($e.Y / $ph * 100)
-        if ($script:dragEdge -match "right") {
-            $space.Zone[2] = [Math]::Max(5, [Math]::Min(100 - $oz[0], $curX - $oz[0]))
-        }
-        if ($script:dragEdge -match "bottom") {
-            $space.Zone[3] = [Math]::Max(5, [Math]::Min(100 - $oz[1], $curY - $oz[1]))
-        }
-        if ($script:dragEdge -match "left") {
-            $newX = [Math]::Max(0, [Math]::Min($oz[0] + $oz[2] - 5, $curX))
-            $space.Zone[2] = $oz[0] + $oz[2] - $newX
-            $space.Zone[0] = $newX
-        }
-        if ($script:dragEdge -match "top") {
-            $newY = [Math]::Max(0, [Math]::Min($oz[1] + $oz[3] - 5, $curY))
-            $space.Zone[3] = $oz[1] + $oz[3] - $newY
-            $space.Zone[1] = $newY
+        if ($script:dragEdge -eq "move") {
+            $dx = $curX - $script:dragStartMousePct[0]
+            $dy = $curY - $script:dragStartMousePct[1]
+            $space.Zone[0] = [Math]::Max(0, [Math]::Min(100 - $oz[2], $oz[0] + $dx))
+            $space.Zone[1] = [Math]::Max(0, [Math]::Min(100 - $oz[3], $oz[1] + $dy))
+        } else {
+            if ($script:dragEdge -match "right") {
+                $space.Zone[2] = [Math]::Max(5, [Math]::Min(100 - $oz[0], $curX - $oz[0]))
+            }
+            if ($script:dragEdge -match "bottom") {
+                $space.Zone[3] = [Math]::Max(5, [Math]::Min(100 - $oz[1], $curY - $oz[1]))
+            }
+            if ($script:dragEdge -match "left") {
+                $newX = [Math]::Max(0, [Math]::Min($oz[0] + $oz[2] - 5, $curX))
+                $space.Zone[2] = $oz[0] + $oz[2] - $newX
+                $space.Zone[0] = $newX
+            }
+            if ($script:dragEdge -match "top") {
+                $newY = [Math]::Max(0, [Math]::Min($oz[1] + $oz[3] - 5, $curY))
+                $space.Zone[3] = $oz[1] + $oz[3] - $newY
+                $space.Zone[1] = $newY
+            }
         }
         $pnlPreview.Invalidate()
         return
     }
 
+    # Hover: com space destacado, checar só ele; sem highlight, checar todos
+    $spacesToHover = if ($script:highlightedSpaceIndex -ge 0) {
+        $sp = $script:currentSpaces[$script:highlightedSpaceIndex]
+        if ($sp.Monitor -eq $script:previewMonitor) { @($sp) } else { @() }
+    } else {
+        @($script:currentSpaces | Where-Object { $_.Monitor -eq $script:previewMonitor })
+    }
+
     $found = $false
-    foreach ($space in ($script:currentSpaces | Where-Object { $_.Monitor -eq $script:previewMonitor })) {
+    foreach ($space in $spacesToHover) {
         $zp = $space.Zone
         $rx = 4 + [int]($pw * $zp[0] / 100)
         $ry = 4 + [int]($ph * $zp[1] / 100)
@@ -869,10 +885,13 @@ $pnlPreview.add_MouseMove({
         $nb = [Math]::Abs($e.Y - $ey) -le $hit -and $e.X -ge $rx -and $e.X -le $ex
         $nl = [Math]::Abs($e.X - $rx) -le $hit -and $e.Y -ge $ry -and $e.Y -le $ey
         $nt = [Math]::Abs($e.Y - $ry) -le $hit -and $e.X -ge $rx -and $e.X -le $ex
+        $inside = $e.X -gt ($rx + $hit) -and $e.X -lt ($ex - $hit) -and
+                  $e.Y -gt ($ry + $hit) -and $e.Y -lt ($ey - $hit)
         $cursor = if     ($nr -and $nb) { [System.Windows.Forms.Cursors]::SizeNWSE }
                   elseif ($nl -and $nt) { [System.Windows.Forms.Cursors]::SizeNWSE }
                   elseif ($nr -or $nl)  { [System.Windows.Forms.Cursors]::SizeWE }
                   elseif ($nb -or $nt)  { [System.Windows.Forms.Cursors]::SizeNS }
+                  elseif ($script:highlightedSpaceIndex -ge 0 -and $inside) { [System.Windows.Forms.Cursors]::SizeAll }
                   else                  { $null }
         if ($cursor) { $pnlPreview.Cursor = $cursor; $found = $true; break }
     }
@@ -886,9 +905,23 @@ $pnlPreview.add_MouseDown({
     $pw  = $pnlPreview.Width  - 8
     $ph  = $pnlPreview.Height - 8
     $hit = 6
-    $idx = 0
-    foreach ($space in $script:currentSpaces) {
-        if ($space.Monitor -ne $script:previewMonitor) { $idx++; continue }
+    $candidates = if ($script:highlightedSpaceIndex -ge 0) {
+        $sp = $script:currentSpaces[$script:highlightedSpaceIndex]
+        if ($sp.Monitor -eq $script:previewMonitor) {
+            @([PSCustomObject]@{ Space = $sp; Idx = $script:highlightedSpaceIndex })
+        } else { @() }
+    } else {
+        $k = 0
+        $script:currentSpaces | ForEach-Object {
+            if ($_.Monitor -eq $script:previewMonitor) {
+                [PSCustomObject]@{ Space = $_; Idx = $k }
+            }
+            $k++
+        }
+    }
+    foreach ($entry in $candidates) {
+        $space = $entry.Space
+        $idx   = $entry.Idx
         $zp = $space.Zone
         $rx = 4 + [int]($pw * $zp[0] / 100)
         $ry = 4 + [int]($ph * $zp[1] / 100)
@@ -899,19 +932,27 @@ $pnlPreview.add_MouseDown({
         $nb = [Math]::Abs($e.Y - $ey) -le $hit -and $e.X -ge $rx -and $e.X -le $ex
         $nl = [Math]::Abs($e.X - $rx) -le $hit -and $e.Y -ge $ry -and $e.Y -le $ey
         $nt = [Math]::Abs($e.Y - $ry) -le $hit -and $e.X -ge $rx -and $e.X -le $ex
+        $inside = $e.X -gt ($rx + $hit) -and $e.X -lt ($ex - $hit) -and
+                  $e.Y -gt ($ry + $hit) -and $e.Y -lt ($ey - $hit)
         $edge = ""
         if ($nr) { $edge += "right" }
         if ($nb) { $edge += "bottom" }
         if ($nl) { $edge += "left" }
         if ($nt) { $edge += "top" }
         if ($edge) {
-            $script:dragSpaceIdx  = $idx
-            $script:dragStartZone = @($zp[0], $zp[1], $zp[2], $zp[3])
-            $script:dragEdge      = $edge
-            $pnlPreview.Capture   = $true
+            $script:dragSpaceIdx      = $idx
+            $script:dragStartZone     = @($zp[0], $zp[1], $zp[2], $zp[3])
+            $script:dragEdge          = $edge
+            $pnlPreview.Capture       = $true
+            break
+        } elseif ($script:highlightedSpaceIndex -ge 0 -and $inside) {
+            $script:dragSpaceIdx      = $idx
+            $script:dragStartZone     = @($zp[0], $zp[1], $zp[2], $zp[3])
+            $script:dragStartMousePct = @([Math]::Round($e.X / $pw * 100), [Math]::Round($e.Y / $ph * 100))
+            $script:dragEdge          = "move"
+            $pnlPreview.Capture       = $true
             break
         }
-        $idx++
     }
 })
 
