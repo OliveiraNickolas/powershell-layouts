@@ -119,17 +119,17 @@ $SX       = $screen.X
 $SY       = $screen.Y
 $scrFull  = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
 # Tamanho inicial do form: preview com mesmo aspect ratio da tela
-# preview.Width = formCW - 566 ; preview.Height = formCH - 189
+# preview.Width = formCW - 566 ; preview.Height = formCH - 165
 $_previewH = 400
 $_previewW = [int]($_previewH * $scrFull.Width / $scrFull.Height)
 $_formCW   = $_previewW + 566
-$_formCH   = $_previewH + 189
+$_formCH   = $_previewH + 165
 # Garante que nao ultrapasse 90% da area util
 if ($_formCW -gt [int]($SW * 0.90)) {
     $_formCW   = [int]($SW * 0.90)
     $_previewW = $_formCW - 566
     $_previewH = [int]($_previewW * $scrFull.Height / $scrFull.Width)
-    $_formCH   = $_previewH + 189
+    $_formCH   = $_previewH + 165
 }
 if ($_formCH -gt [int]($SH * 0.90)) { $_formCH = [int]($SH * 0.90) }
 # Dimensoes fixas do canvas (nao mudam com resize)
@@ -770,7 +770,11 @@ $pnlPreview.add_Paint({
     if ($script:currentSpaces.Count -eq 0) {
         $f = New-Object System.Drawing.Font("Consolas", 9, [System.Drawing.FontStyle]::Bold)
         $br = New-Object System.Drawing.SolidBrush($cAccent)
-        $g.DrawString("SELECIONE UM LAYOUT", $f, $br, 180, 170)
+        $txt = "SELECIONE UM LAYOUT"
+        $sz  = $g.MeasureString($txt, $f)
+        $tx  = [int](($pnlPreview.Width  - $sz.Width)  / 2)
+        $ty  = [int](($pnlPreview.Height - $sz.Height) / 2)
+        $g.DrawString($txt, $f, $br, $tx, $ty)
         return
     }
 
@@ -2273,16 +2277,16 @@ function Sync-Layout {
     # Painel direito: mantém margem de 18px à direita
     $rightX = $cw - 328
     $pnlSpaces.Left   = $rightX
-    $pnlSpaces.Height = $ch - 217
+    $pnlSpaces.Height = $ch - 193
     $lblSpaces.Left   = $rightX
     $btnAddSpace.Left = $rightX
-    $btnAddSpace.Top  = $ch - 129
+    $btnAddSpace.Top  = $ch - 105
 
     # Canvas: recentrado em cada resize dentro do espaco disponivel
     $midLeft  = 213
     $midRight = $cw - 340          # 12px extra de margem antes do painel direito
     $prevX = [Math]::Max($midLeft, $midLeft + [int](($midRight - $midLeft - $script:previewW) / 2))
-    $prevY = [Math]::Max(84, [int](84 + ((($ch - 95) - 84 - $script:previewH) / 2)))
+    $prevY = [Math]::Max(84, [int](84 + ((($ch - 71) - 84 - $script:previewH) / 2)))
     $pnlPreview.Left = $prevX
     $pnlPreview.Top  = $prevY
     $lblPreview.Left  = $prevX
@@ -2291,26 +2295,26 @@ function Sync-Layout {
     $lblMonPage.Left  = $prevX + 119
     $btnMonNext.Left  = $prevX + 147
     $sepV2.Left   = $prevX + $script:previewW + 8
-    $sepV2.Height = $ch - 163
-    $sepV1.Height = $ch - 163
+    $sepV2.Height = $ch - 139
+    $sepV1.Height = $ch - 139
     $lblRes.Left  = $sepV2.Left - 142
 
     # Barra inferior
-    $sepBottom.Top      = $ch - 98
+    $sepBottom.Top      = $ch - 74
     $sepBottom.Width    = $cw - 6
-    $btnApply.Top       = $ch - 88
-    $btnSaveCurrent.Top = $ch - 88
-    $btnOverwrite.Top   = $ch - 88
-    $btnDeleteSaved.Top = $ch - 88
-    $btnSetShortcut.Top = $ch - 88
-    $lblStatus.Top      = $ch - 50
+    $btnApply.Top       = $ch - 64
+    $btnSaveCurrent.Top = $ch - 64
+    $btnOverwrite.Top   = $ch - 64
+    $btnDeleteSaved.Top = $ch - 64
+    $btnSetShortcut.Top = $ch - 64
+    $lblStatus.Top      = $ch - 26
     $lblStatus.Width    = $cw - 24
 
     # Painel esquerdo
-    $lstSaved.Height    = $ch - 285
-    $btnSavedUp.Top     = $ch - 129
-    $btnSavedDown.Top   = $ch - 129
-    $btnSavedRename.Top = $ch - 129
+    $lstSaved.Height    = $ch - 261
+    $btnSavedUp.Top     = $ch - 105
+    $btnSavedDown.Top   = $ch - 105
+    $btnSavedRename.Top = $ch - 105
 
     $pnlPreview.Invalidate()
 }
