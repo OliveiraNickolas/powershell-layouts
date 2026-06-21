@@ -342,6 +342,7 @@ $form = New-Object System.Windows.Forms.Form
 $form.Text            = "SnapLayout"
 $form.Size            = New-Object System.Drawing.Size($_formCW, $_formCH)
 $form.MinimumSize     = New-Object System.Drawing.Size($_formCW, $_formCH)
+$form.MaximumSize     = New-Object System.Drawing.Size($_formCW, $_formCH)
 $form.StartPosition   = "CenterScreen"
 $form.FormBorderStyle = "None"
 $form.MaximizeBox     = $false
@@ -735,19 +736,6 @@ $lblStatus.Size      = New-Object System.Drawing.Size(1056, 14)
 $form.Controls.Add($lblStatus)
 
 # Grip de resize — usa WM_NCLBUTTONDOWN (mesmo mecanismo do drag da titlebar)
-$grip = New-Object System.Windows.Forms.Panel
-$grip.Size      = New-Object System.Drawing.Size(12, 12)
-$grip.Location  = New-Object System.Drawing.Point(1065, 560)
-$grip.BackColor = $cBg
-$grip.Cursor    = [System.Windows.Forms.Cursors]::SizeNWSE
-$form.Controls.Add($grip)
-$grip.add_MouseDown({
-    param($s, $e)
-    if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Left) {
-        [SnapAPI]::ReleaseCapture()
-        [SnapAPI]::SendMessage($form.Handle, 0xA1, 0x11, 0) | Out-Null  # WM_NCLBUTTONDOWN, HTBOTTOMRIGHT
-    }
-})
 
 # ============================================================
 #  FUNCOES DE REFRESH
@@ -2283,22 +2271,12 @@ function Sync-Layout {
     $btnSavedDown.Top   = $ch - 139
     $btnSavedRename.Top = $ch - 139
 
-    # Grip de resize
-    $grip.Left = $cw - 15
-    $grip.Top  = $ch - 15
-
     $pnlPreview.Invalidate()
 }
 
 # Shown: dispara uma vez, ja com o tamanho final correto
 $form.add_Shown({ Sync-Layout $form.ClientSize.Width $form.ClientSize.Height })
 
-# Resize: reposiciona controles e forca repaint completo para evitar rastro
-$form.add_Resize({
-    Sync-Layout $form.ClientSize.Width $form.ClientSize.Height
-    $form.Invalidate($true)
-    $form.Update()
-})
 
 [void]$form.ShowDialog()
 $hotkeyTimer.Stop()
