@@ -946,6 +946,33 @@ $pnlPreview.add_MouseMove({
 
 $pnlPreview.add_MouseDown({
     param($s, $e)
+
+    # Clique direito: seleciona o space sob o cursor (mesmo comportamento do clique na lista)
+    if ($e.Button -eq [System.Windows.Forms.MouseButtons]::Right) {
+        if ($script:currentSpaces.Count -gt 0) {
+            $rpw = $pnlPreview.Width  - 8
+            $rph = $pnlPreview.Height - 8
+            $found = -1
+            for ($ri = $script:currentSpaces.Count - 1; $ri -ge 0; $ri--) {
+                $rsp = $script:currentSpaces[$ri]
+                if ($rsp.Monitor -ne $script:previewMonitor) { continue }
+                $rzp = $rsp.Zone
+                $rx  = 4 + [int]($rpw * $rzp[0] / 100)
+                $ry  = 4 + [int]($rph * $rzp[1] / 100)
+                $rw2 = [int]($rpw * $rzp[2] / 100)
+                $rh2 = [int]($rph * $rzp[3] / 100)
+                if ($e.X -ge $rx -and $e.X -le ($rx + $rw2) -and
+                    $e.Y -ge $ry -and $e.Y -le ($ry + $rh2)) {
+                    $found = $ri; break
+                }
+            }
+            $script:highlightedSpaceIndex = $found
+            Build-SpacePanel
+            $pnlPreview.Invalidate()
+        }
+        return
+    }
+
     if ($e.Button -ne [System.Windows.Forms.MouseButtons]::Left) { return }
     if ($script:currentSpaces.Count -eq 0) { return }
     $pw  = $pnlPreview.Width  - 8
@@ -1040,14 +1067,14 @@ function Build-SpacePanel {
             $lblMon.Location  = New-Object System.Drawing.Point(0, $y)
             $lblMon.Size      = New-Object System.Drawing.Size($pw, 18)
             $lblMon.Font      = New-Object System.Drawing.Font("Consolas", 8, [System.Drawing.FontStyle]::Bold)
-            $lblMon.ForeColor = $cAccent
+            $lblMon.ForeColor = $cOrange
             $lblMon.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
             $pnlSpaces.Controls.Add($lblMon)
             $y += 20
             $sepMon = New-Object System.Windows.Forms.Panel
             $sepMon.Location  = New-Object System.Drawing.Point(0, $y)
             $sepMon.Size      = New-Object System.Drawing.Size($pw, 1)
-            $sepMon.BackColor = $cAccent
+            $sepMon.BackColor = $cOrange
             $pnlSpaces.Controls.Add($sepMon)
             $y += 5
         }
@@ -1442,8 +1469,8 @@ function Build-SpacePanel {
 
         # Separador
         $sepSpace = New-Object System.Windows.Forms.Panel
-        $sepSpace.Location  = New-Object System.Drawing.Point(2, $y)
-        $sepSpace.Size      = New-Object System.Drawing.Size(250, 1)
+        $sepSpace.Location  = New-Object System.Drawing.Point(4, $y)
+        $sepSpace.Size      = New-Object System.Drawing.Size(($pw - 8), 1)
         $sepSpace.BackColor = $cBorder
         $pnlSpaces.Controls.Add($sepSpace)
         $y += 8
@@ -2269,14 +2296,14 @@ function Sync-Layout {
     $lblRes.Left  = $sepV2.Left - 142
 
     # Barra inferior
-    $sepBottom.Top      = $ch - 95
+    $sepBottom.Top      = $ch - 98
     $sepBottom.Width    = $cw - 6
-    $btnApply.Top       = $ch - 92
-    $btnSaveCurrent.Top = $ch - 92
-    $btnOverwrite.Top   = $ch - 92
-    $btnDeleteSaved.Top = $ch - 92
-    $btnSetShortcut.Top = $ch - 92
-    $lblStatus.Top      = $ch - 55
+    $btnApply.Top       = $ch - 88
+    $btnSaveCurrent.Top = $ch - 88
+    $btnOverwrite.Top   = $ch - 88
+    $btnDeleteSaved.Top = $ch - 88
+    $btnSetShortcut.Top = $ch - 88
+    $lblStatus.Top      = $ch - 50
     $lblStatus.Width    = $cw - 24
 
     # Painel esquerdo
